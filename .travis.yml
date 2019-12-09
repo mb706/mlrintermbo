@@ -1,0 +1,118 @@
+language: r
+sudo: false
+cache: packages
+dist: trusty
+r:
+  - release
+
+addons:
+  apt:
+    packages:
+      - libgsl0-dev
+
+env:
+  global:
+    - _R_CHECK_TIMINGS_=0
+    - _R_CHECK_FORCE_SUGGESTS_=false  # no error if suggested packs are not avail
+    - _R_CHECK_TESTS_NLINES_=999
+
+warnings_are_errors: true
+r_check_args: "--as-cran --run-donttest"
+
+r_github_packages:
+  - jimhester/lintr
+  - r-lib/covr
+
+before_install:
+  # we want to see libpaths and installed packages from cache
+  - Rscript -e 'message("LIBPATHS:"); .libPaths()'
+  - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
+
+before_script:
+  - rm inst/doc/*.*
+  - Rscript -e 'if (!require("roxygen2")) install.packages("roxygen2")'
+  - Rscript -e 'if (!require("pkgdown")) install.packages("pkgdown")'
+  - Rscript -e 'devtools::document()'
+
+after_failure:
+  - ./travis-tool.sh dump_logs
+
+stages:
+  - install
+  - test
+  - covr
+  - name: document
+    if: branch = master AND type IN (push, api, cron)
+
+jobs:
+  include:
+    - stage: install
+      env: github-mlr
+      script:
+          # github mlr & tools
+        - Rscript -e 'devtools::install_github("berndbischl/BBmisc")'
+        - Rscript -e 'devtools::install_github("berndbischl/ParamHelpers")'
+        - Rscript -e 'devtools::install_github("mlr-org/mlr")'
+        - echo 'Filled the cache with installed R packages.'
+        - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
+    - stage: install
+      env: cran-mlr
+      script:
+          # cran mlr & tools
+        - echo 'Filled the cache with installed R packages.'
+        - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
+    - stage: test
+      env: github-mlr
+      script:
+        - R CMD build .
+        - travis_wait 100 R CMD check mlrCPO*.tar.gz --as-cran --run-donttest
+        - grep -q -R "WARNING" "mlrCPO.Rcheck/00check.log" ; [ $? -ne 0 ]
+    - stage: test
+      env: cran-mlr
+      script:
+        - Rscript -e 'installed.packages()[c("BBmisc", "ParamHelpers", "mlr"), 2:3]'
+        - R CMD build .
+        - travis_wait 100 R CMD check mlrCPO*.tar.gz --as-cran --run-donttest
+        - grep -q -R "WARNING" "mlrCPO.Rcheck/00check.log" ; [ $? -ne 0 ]
+    - stage: covr
+      env: github-mlr
+      script:
+        - Rscript -e 'devtools::install_github("berndbischl/BBmisc")'
+        - Rscript -e 'devtools::install_github("berndbischl/ParamHelpers")'
+        - Rscript -e 'devtools::install_github("mlr-org/mlr")'
+        - travis_wait 100 Rscript -e 'library(BBmisc);covr::codecov(quiet=FALSE)'
+    - stage: document
+      env: cran-mlr
+      script:
+        - true
+      before_deploy:
+        - Rscript -e 'devtools::install(quick = TRUE); pkgdown::build_site(); devtools::document(); tools::buildVignettes(dir = ".");'
+        - mv vignettes/*.html inst/doc
+      deploy:
+        provider: pages
+        skip-cleanup: true
+        github-token: $GITHUB_TOKEN
+        local-dir: docs
+        on:
+          branch: master
+      after_deploy:
+        - git checkout master  # otherwise we're in detached head
+        - "export TRAVIS_COMMIT_MSG=\"$(git log --format=%B --no-merges -n 1)\""
+        - git config user.name Travis
+        - git config user.email '<>'
+        - git config credential.helper "store --file=.git/credentials"
+        - echo "https://${GITHUB_TOKEN}:@github.com" >> .git/credentials
+        - git config push.default matching
+        - |
+          git difftool -yx "diff -qI '20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\\\|environment. 0x\\\\|time. [0-9.]\\\\+'" | \
+          grep 'and inst/doc' | sed -e 's|.*and inst/doc|inst/doc|' -e 's/ differ$//' | xargs git add
+        - git add --force man/*
+        - git add DESCRIPTION NAMESPACE
+        - git commit -m "update auto-generated documentation [ci skip]" || true
+        - git push
+      
+on_success: change
+on_failure: always
+
+notifications:
+  email: false

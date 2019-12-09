@@ -1,0 +1,7 @@
+^tools$
+^todo-files$
+^man-roxygen$
+\.gitignore
+^\.git$
+^\.travis.yml$
+^.gitattributes$
