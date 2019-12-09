@@ -4,7 +4,7 @@
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/mlrintermbo)](https://CRAN.R-project.org/package=mlrintermbo)
 
 
-# mlrintermbo: An mlrMBO-mlr3-interface
+# mlrintermbo: An mlrMBO-mlr3-interface <img src="todo-files/mlrintermbo.png" />
 
 ## License
 
