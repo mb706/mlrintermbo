@@ -17,74 +17,84 @@
 TunerInterMBO <- R6Class("TunerInterMBO",
   inherit = Tuner,
   public = list(
+    n.objectives = NULL,
+    opt.state = NULL,
     initialize = function(n.objectives) {
-      ps = ParamSet$new(c(list(
+      self$n.objectives <- n.objectives
+      ps <- ParamSet$new(c(list(
+        # setMBOControl
         ParamInt$new("propose.points", lower = 1, default = 1),
         ParamFct$new("final.method", levels = c("best.true.y", "last.proposed", "best.predicted"), default = "best.true.y"),
         ParamInt$new("final.evals", lower = 0, default = 0),
-
+        # setMBOControlInfill
         ParamFct$new("infill.crit", levels = c("MeanResponse", "StandardError", "EI", "CB", "AEI", "EQI", "DIB", "AdaCB"), default = "CB"),
-        ParamDbl$new("infill.crit.se.threshold", lower = 0, default = 1e-6),  #requires infill.crit == StandardError or AEI
-        ParamDbl$new("infill.crit.cb.lambda", special_vals = list(NULL), default = NULL),  # requires infill.crit == CB || DIB
-        ParamFct$new("infill.crit.aei.use.nugget", default = FALSE),  # requires infill.crit == aei
-        ParamDbl$new("infill.crit.eqi.beta", lower = 0, upper = 1, default = 0.75),  # TODO not sure about bounds   # requires infill.crit == EQI
-        ParamDbl$new("infill.crit.dib.sms.eps", lower = 0, special_vals = list(NULL), default = NULL),  # TODO not sure about bound  # requires infill.crit == dib
-        ParamDbl$new("infill.crit.cb.lambda.start", special_vals = list(NULL), default = NULL),  # TODO requires infill.crit == AdaCB
-        ParamDbl$new("infill.crit.cb.lambda.end", special_vals = list(NULL), default = NULL),  # TODO requiresi nfill.crit == AdaCB
+        ParamDbl$new("infill.crit.se.threshold", lower = 0, default = 1e-6),
+        ParamDbl$new("infill.crit.cb.lambda", special_vals = list(NULL), default = NULL),
+        ParamLgl$new("infill.crit.aei.use.nugget", default = FALSE),
+        ParamDbl$new("infill.crit.eqi.beta", lower = 0, upper = 1, default = 0.75),  # TODO not sure about bounds
+        ParamDbl$new("infill.crit.sms.eps", lower = 0, special_vals = list(NULL), default = NULL),
+        ParamDbl$new("infill.crit.cb.lambda.start", special_vals = list(NULL), default = NULL),
+        ParamDbl$new("infill.crit.cb.lambda.end", special_vals = list(NULL), default = NULL),
         ParamInt$new("infill.interleave.random.points", lower = 0, default = 0),
         ParamLgl$new("infill.filter.proposed.points", default = FALSE),
-        ParamDbl$new("infill.filter.propposed.points.tol", lower = 0, default = 1e-4),  # TODO: requires filter.proposed.points == TRUE
+        ParamDbl$new("infill.filter.propposed.points.tol", lower = 0, default = 1e-4),
         ParamFct$new("infill.opt", levels = c("focussearch", "cmaes", "ea", "nsga2"), default = "focussearch"),
         ParamInt$new("infill.opt.restarts", lower = 1, default = 3),
-        ParamInt$new("infill.opt.focussearch.maxit", lower = 1, default = 5), # TODO: requires infill.opt == focussearch
-        ParamInt$new("infill.opt.focussearch.points", lower = 1, default = 1000),  # TODO: requires infill.opt == focussearch
-        ParamUty$new("infill.opt.cmaes.control"),  # TODO: requires infill.opt = cmaes
-        ParamInt$new("infill.opt.ea.maxit", lower = 1, default = 500),  # TODO: requires infill.opt = ea
-        ParamInt$new("infill.opt.ea.mu", default = 1),  # TODO: requires infill.opt = ea
-        ParamDbl$new("infill.opt.ea.sbx.eta", lower = 0, default = 15),  # TODO not sure about bounds # TODO: requires infill.opt = ea
-        ParamDbl$new("infill.opt.ea.sbx.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?   # TODO: requires infill.opt = ea
-        ParamDbl$new("infill.opt.ea.pm.eta", lower = 0, default = 15),  # TODO not sure about bounds   # TODO: requires infill.opt = ea
-        ParamDbl$new("infill.opt.ea.pm.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?  # TODO: requires infill.opt = ea
-        ParamInt$new("infill.opt.ea.lambda", lower = 1, default = 1),  # TODO: requires infill.opt = ea
-        ParamInt$new("infill.opt.nsga2.popsize", lower = 1, default = 100),  # TODO: requires infill.opt = nsga2
-        ParamInt$new("infill.opt.nsga2.generations", lower = 1, default = 50),  # TODO: requires infill.opt = nsga2
-        ParamDbl$new("infill.opt.nsga2.cprob", lower = 0, upper = 1, default = 0.7),  # TODO: requires infill.opt = nsga2
-        ParamDbl$new("infill.opt.nsga2.cdist", lower = 0, default = 5), # TODO not sure about bound # TODO: requires infill.opt = nsga2
-        ParamDbl$new("infill.opt.nsga2.mprob", lower = 0, upper = 1, default = 0.2),  # TODO: requires infill.opt = nsga2
-        ParamDbl$new("infill.opt.nsga2.mdist", lower = 0, default = 10),  # TODO: requires infill.opt = nsga2
-
-        ParamFct$new("multipoint.method", levels = c("cb", "moimbo", "cl")),
+        ParamInt$new("infill.opt.focussearch.maxit", lower = 1, default = 5),
+        ParamInt$new("infill.opt.focussearch.points", lower = 1, default = 1000),
+        ParamUty$new("infill.opt.cmaes.control"),
+        ParamInt$new("infill.opt.ea.maxit", lower = 1, default = 500),
+        ParamInt$new("infill.opt.ea.mu", default = 1),
+        ParamDbl$new("infill.opt.ea.sbx.eta", lower = 0, default = 15),  # TODO not sure about bounds
+        ParamDbl$new("infill.opt.ea.sbx.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?
+        ParamDbl$new("infill.opt.ea.pm.eta", lower = 0, default = 15),  # TODO not sure about bounds
+        ParamDbl$new("infill.opt.ea.pm.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?
+        ParamInt$new("infill.opt.ea.lambda", lower = 1, default = 1),
+        ParamInt$new("infill.opt.nsga2.popsize", lower = 1, default = 100),
+        ParamInt$new("infill.opt.nsga2.generations", lower = 1, default = 50),
+        ParamDbl$new("infill.opt.nsga2.cprob", lower = 0, upper = 1, default = 0.7),
+        ParamDbl$new("infill.opt.nsga2.cdist", lower = 0, default = 5), # TODO not sure about bound
+        ParamDbl$new("infill.opt.nsga2.mprob", lower = 0, upper = 1, default = 0.2),
+        ParamDbl$new("infill.opt.nsga2.mdist", lower = 0, default = 10),
+        # setMBOControlMultiPoint
+        ParamFct$new("multipoint.method", levels = c("cb", "moimbo", "cl"), default = "cb"),
           # multipoint.method == cb --> do not define infill.opt.cb.lambda
           #                   == "moimbo" --> mboinfillcrit ignored
           #                   == cl --> infill.crit == cb
-        ParamUty$new("multipoint.cl.lie", custom_check = checkFunction, default = min),  # requires multipoint.method == cl
-        ParamFct$new("multipoint.moimbo.objective", levels = c("mean.dist", "ei.dist", "mean.se", "mean.se.dist"), default = "ei.dist"),  # requires multipoint.method == moimbo
-        ParamFct$new("multipoint.moimbo.dist", levels = c("nearest.neighbor", "nearest.better"), default = "nearest.better"),  # requires multipoint.method == moimbo
-        ParamFct$new("multipoint.moimbo.selection", levels = c("hypervolume", "crowdingdist", "first", "last"), default = "hypervolume"),  # requires multipoint.method == moimbo
-        ParamInt$new("multipoint.moimbo.maxit", lower = 1, default = 100),  # requires multipoint.method == moimbo
-        ParamDbl$new("multipoint.moimbo.sbx.eta", lower = 0, default = 15),# TODO not sure about bounds  # requires multipoint.method == moimbo
-        ParamDbl$new("multipoint.moimbo.sbx.p", lower = 0, upper = 1, default = 1),# TODO not sure about bounds; is the default correct?     # requires multipoint.method == moimbo
-        ParamDbl$new("multipoint.moimbo.pm.eta", lower = 0, default = 15),# TODO not sure about bound  # requires multipoint.method == moimbo
-        ParamDbl$new("multipoint.moimbo.pm.p", lower = 0, upper = 1, default = 1),# TODO not sure about bounds; is the default correct?     # requires multipoint.method == moimbo
+        ParamUty$new("multipoint.cl.lie", custom_check = checkFunction, default = min),
+        ParamFct$new("multipoint.moimbo.objective", levels = c("mean.dist", "ei.dist", "mean.se", "mean.se.dist"), default = "ei.dist"),
+        ParamFct$new("multipoint.moimbo.dist", levels = c("nearest.neighbor", "nearest.better"), default = "nearest.better"),
+        ParamFct$new("multipoint.moimbo.selection", levels = c("hypervolume", "crowdingdist", "first", "last"), default = "hypervolume"),
+        ParamInt$new("multipoint.moimbo.maxit", lower = 1, default = 100),
+        ParamDbl$new("multipoint.moimbo.sbx.eta", lower = 0, default = 15),  # TODO not sure about bounds
+        ParamDbl$new("multipoint.moimbo.sbx.p", lower = 0, upper = 1, default = 1),  # TODO not sure about bounds; is the default correct?
+        ParamDbl$new("multipoint.moimbo.pm.eta", lower = 0, default = 15),  # TODO not sure about bound
+        ParamDbl$new("multipoint.moimbo.pm.p", lower = 0, upper = 1, default = 1),  # TODO not sure about bounds; is the default correct?moimbo
+        # setMBOControlTermination
+        ParamUty$new("termination.more.termination.conds", custom_check = checkList, default = list()),
+        # others
+        ParamInt$new("initial.design.size", lower = 1),
+        ParamUty$new("surrogate.learner", custom_check = detachEnv(function(x) checkClass(x, "LearnerDesc")))
       ), if (n.objectives > 1) list(
+        # setMBOControlMultiObj
         ParamFct$new("multiobj.method", levels = c("parego", "dib", "mspot"), default= "dib"),
-        ParamFct$new("multiobj.ref.point.method", levels = c("all", "front", "const"), default = "all"),  # TODO: requires mspot or dib(sms)
-        ParamDbl$new("multiobj.ref.point.offset", default = 1),  # TODO: requires method %in% all, front
-        ParamUty$new("multiobj.ref.point.val", custom_check = detachEnv(function(x) checkNumeric(x, any.missing = FALSE, len = n.objectives), "n.objectives")),  # TODO requires method == const
-        ParamInt$new("multiobj.parego.s", lower = 1),  # TODO requires method parego
-        ParamDbl$new("multiobj.parego.rho", default = 0.05),  # TODO requires parego
-        ParamLgl$new("multiobj.parego.use.margin.points", default = FALSE),  # TODO requires parego
-        ParamInt$new("multiobj.parego.sample.more.weights", default = lower = 1),  # TODO requires parego
-        ParamFct$new("multiobj.parego.normalize", levels = c("standard", "front"), default = "standard"),  # TODO requires parego
-        ParamFct$new("multiobj.dib.indicator", default = c("sms", "eps")),  # TODO requires dib
-        ParamFct$new("multiobj.mspot.select.crit", c("MeanResponse", "CB"), default = "MeanResponse"),  # TODO requires mspot
-        ParamDbl$new("multiobj.mspot.select.crit.cb.lambda", special_vals = list(NULL), default = NULL)  # requires multiboj.mspot.select.crit == CB
+        ParamFct$new("multiobj.ref.point.method", levels = c("all", "front", "const"), default = "all"),
+        ParamDbl$new("multiobj.ref.point.offset", default = 1),
+        ParamUty$new("multiobj.ref.point.val", custom_check = detachEnv(function(x) checkNumeric(x, any.missing = FALSE, len = n.objectives), "n.objectives")),
+        ParamInt$new("multiobj.parego.s", lower = 1),
+        ParamDbl$new("multiobj.parego.rho", default = 0.05),
+        ParamLgl$new("multiobj.parego.use.margin.points", default = FALSE),
+        ParamInt$new("multiobj.parego.sample.more.weights", default = lower = 1),
+        ParamFct$new("multiobj.parego.normalize", levels = c("standard", "front"), default = "standard"),
+        ParamFct$new("multiobj.dib.indicator", default = c("sms", "eps")),
+        ParamFct$new("multiobj.mspot.select.crit", c("MeanResponse", "CB"), default = "MeanResponse"),
+        ParamDbl$new("multiobj.mspot.select.crit.cb.lambda", special_vals = list(NULL), default = NULL)
       )))$
-        add_dep("infill.crit.se.threshold", "infill.crit", CondAnyOf$new(c("StandardError", "AEI")))$
+        add_dep("infill.crit.se.threshold", "infill.crit", CondAnyOf$new(c("EI", "AEI", "EQI")))$
         add_dep("infill.crit.cb.lambda", "infill.crit", CondAnyOf$new(c("CB", "DIB")))$
         add_dep("infill.crit.aei.use.nugget", "infill.crit", CondEqual$new("AEI"))$
         add_dep("infill.crit.eqi.beta", "infill.crit", CondEqual$new("EQI"))$
-        add_dep("infill.crit.dib.sms.eps", "infill.crit", CondEqual$new("DIB"))$
+        add_dep("infill.crit.sms.eps", "infill.crit", CondEqual$new("DIB"))$
         add_dep("infill.crit.cb.lambda.start", "infill.crit", CondEqual$new("AdaCB"))$
         add_dep("infill.crit.cb.lambda.end", "infill.crit", CondEqual$new("AdaCB"))$
         add_dep("infill.filter.proposed.points.tol", "filter.proposed.points", CondEqual$new(TRUE))$
@@ -102,10 +112,32 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         add_dep("infill.opt.nsga2.generations", "infill.opt", CondEqual$new("nsga2"))$
         add_dep("infill.opt.nsga2.cprob", "infill.opt", CondEqual$new("nsga2"))$
         add_dep("infill.opt.nsga2.cdist", "infill.opt", CondEqual$new("nsga2"))$
+        add_dep("infill.opt.nsga2.mprob", "infill.opt", CondEqual$new("nsga2"))$
         add_dep("infill.opt.nsga2.mdist", "infill.opt", CondEqual$new("nsga2"))$
+        add_dep("multipoint.cl.lie", "multipoint.method", CondEqual$new("cl"))$
+        add_dep("multipoint.moimbo.objective", "multipoint.method", CondEqual$new("moimbo"))$
+        add_dep("multipoint.moimbo.dist", "multipoint.method", CondEqual$new("moimbo"))$
+        add_dep("multipoint.moimbo.selection", "multipoint.method", CondEqual$new("moimbo"))$
+        add_dep("multipoint.moimbo.maxit", "multipoint.method", CondEqual$new("moimbo"))$
+        add_dep("multipoint.moimbo.sbx.eta", "multipoint.method", CondEqual$new("moimbo"))$
+        add_dep("multipoint.moimbo.sbx.p", "multipoint.method", CondEqual$new("moimbo"))$
+        add_dep("multipoint.moimbo.pm.eta", "multipoint.method", CondEqual$new("moimbo"))$
+        add_dep("multipoint.moimbo.pm.p", "multipoint.method", CondEqual$new("moimbo"))
 
-        add_dep("infill.opt.", "infill.opt", CondEqual$new(""))$
-
+      if (n.objectives > 1) {
+        ps$
+          add_dep("multiobj.ref.point.method", "multiobj.method", CondAnyOf$new(c("mspot", "dib"))$
+          add_dep("multiobj.ref.point.offset", "multiobj.ref.point.method", CondAnyOf$new(c("all", "front"))$
+          add_dep("multiobj.ref.point.val", "multiobj.ref.point.method", CondEqual$new("const"))$
+          add_dep("multiobj.parego.s", "multiobj.method", CondEqual$new("parego"))$
+          add_dep("multiobj.parego.rho", "multiobj.method", CondEqual$new("parego"))$
+          add_dep("multiobj.parego.use.margin.points", "multiobj.method", CondEqual$new("parego"))$
+          add_dep("multiobj.parego.sample.more.weights", "multiobj.method", CondEqual$new("parego"))$
+          add_dep("multiobj.parego.normalize", "multiobj.method", CondEqual$new("parego"))$
+          add_dep("multiobj.dib.indicator", "multiobj.method", CondEqual$new("dib"))$
+          add_dep("multiobj.mspot.select.crit", "multiobj.method", CondEqual$new("mspot"))$
+          add_dep("multiobj.mspot.select.crit.cb.lambda", "multiobj.mspot.select.crit", CondEqual$new("CB"))
+      }
 
       super$initialize(
         param_set = ps,
@@ -116,11 +148,98 @@ TunerInterMBO <- R6Class("TunerInterMBO",
   ),
   private = list(
     tune_internal = function(instance) {
+      vals <- self$param_set$values
+      par.set <- ParamHelpersParamSet(instance$param_set)
+      learner <- if (!is.null(vals$surrogate.learner)) GetLearnerFromDesc(vals$surrogate.learner)
+      control <- encapsulate("callr", constructMBOControl, .args = list(vals = vals, n.objectives = self$n.objectives))
+      minimize <- map(self$measures, "minimize")
 
-
+      while (NOT_TERMINATED_BY_MBO) {
+        if (FIRST ROUND) {
+          design <- encapsulate("callr", function(n, ps) {
+            mlrMBO::generateDesign(n, ps)
+          }, .args = list(n = vals$initial.design.size %??% length(par.set$pars), ps = par.set))
+        } else {
+          design <- ENCAPSULATE proposePoints(opt.state)
+        }
+        # TODO: evalaute design
+        if (FIRST ROUND) {
+          self$opt.state <- encapsulate("callr", function(...) {
+            mlrMBO::initSMBO(...)
+          }, .args = list(par.set = par.set, design = design, learner = learner, control = control, minimize = minimize))
+        } else {
+          self$opt.state <- ENCAPSULATE {updateSMBO(opt.state, ...) ; opt.state }
+        }
+      }
+    },
+    assign_result = function(instance) {
+      # get best result from self$opt.state
     }
   )
 )
+
+
+# create mlrMBO control object from parameter values
+constructMBOControl <- function(vals, n.objectives) {
+  getVals <- function(delete.prefix, vn = "", vn.is.prefix = TRUE) {
+    assertString(vn)
+    assertString(delete.prefix)
+    assertFlag(vn.is.prefix)
+    vn <- paste0(delete.prefix, vn)
+    unlist(unname(lapply(vn, function(v) {
+      if (vn.is.prefix) {
+        take <- names(vals)[startsWith(names(vals), v)]
+      } else {
+        take <- intersect(names(vals), v)
+      }
+      li <- vals[take]
+      names(li) <- sub(delete.prefix, "", names(li), fixed = TRUE)
+      li
+    })), recursive = FALSE)
+  }
+
+  control <- invoke(mlrMBO::makeMBOControl,
+    n.objectives = n.objectives, y.name = "PERFORMANCE",
+    .args = getVals("", c("propose.points", "final.method", "final.evals"), FALSE))
+
+  if (!is.null(vals$infill.crit)) {
+    vals$infill.crit <- switch(vals$infill.crit,
+      MeanResponse = mlrMBO::makeMBOInfillCritMeanResponse(),
+      StandardError = mlrMBO::makeMBOInfillCritStandardError(),
+      EI = do.call(mlrMBO::makeMBOInfillCritEI, getVals("infill.crit.", "se")),
+      CB = do.call(mlrMBO::makeMBOInfillCritCB, getVals("infill.crit.", "cb.lambda", FALSE)),
+      AEI = do.call(mlrMBO::makeMBOInfillCritAEI, getVals("infill.crit.", c("aei", "se"))),
+      EQI = do.call(mlrMBO::makeMBOInfillCritEQI, getVals("infill.crit.", c("eqi", "se"))),
+      DIB = do.call(mlrMBO::makeMBOInfillCritDIB, getVals("infill.crit.", c("cb.lambda", "sms.eps"), FALSE)),
+      AdaCB = do.call(mlrMBO::makeMBOInfillCritDIB, getVals("infill.crit.", "cb.lambda.")),
+      stop("bad infill.crit parameter")
+    )
+  }
+
+
+  control <- invoke(mlrMBO::setMBOControlInfill, control = control,
+    .args = c(getVals("infill.", "crit", FALSE),
+      getVals("infill.", c("interleave", "filter", "opt"))))
+  if (vals$propose.points %??% 1 != 1) {
+    control <- invoke(mlrMBO::setMBOControlMultiPoint, control = control,
+      .args = getVals("multipoint."))
+  }
+  if (n.objectives > 1) {
+    if (!is.null(vals$multiobj.mspot.select.crit)) {
+      vals$multiobj.mspot.select.crit <- switch(vals$multiobj.mspot.select.crit,
+        MeanResponse = mlrMBO::makeMBOInfillCritMeanResponse(),
+        CB = do.call(mlrMBO::makeMBOInfillCritCB, getVals("multiobj.mspot.select.crit.", "cb.lambda")),
+        stop("bad multiobj.mspot.select.crit parameter")
+      )
+      vals$multiobj.mspot.select.crit.cb.lambda <- NULL
+    }
+    control <- invoke(mlrMBO::setMBOControlMultiObj, control = control,
+      .args = getVals("multiobj."))
+  }
+  # need to overwrite the default isters '10'
+  mlrMBO::setMBOControlTermination(control, iters = .Machine$integer.max, .args = getVals("termination.", "more.termination.conds"))
+}
+
 
 # removes the environment from fun and potentially wraps it in a new environment
 detachEnv <- function(fun, keep = character(0), basis = topenv(parent.frame())) {
