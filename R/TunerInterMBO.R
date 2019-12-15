@@ -19,7 +19,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
   public = list(
     n.objectives = NULL,
     opt.state = NULL,
-    initialize = function(n.objectives) {
+    initialize = function(n.objectives = 1) {
       self$n.objectives <- n.objectives
       ps <- ParamSet$new(c(list(
         # setMBOControl
@@ -37,7 +37,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         ParamDbl$new("infill.crit.cb.lambda.end", special_vals = list(NULL), default = NULL),
         ParamInt$new("infill.interleave.random.points", lower = 0, default = 0),
         ParamLgl$new("infill.filter.proposed.points", default = FALSE),
-        ParamDbl$new("infill.filter.propposed.points.tol", lower = 0, default = 1e-4),
+        ParamDbl$new("infill.filter.proposed.points.tol", lower = 0, default = 1e-4),
         ParamFct$new("infill.opt", levels = c("focussearch", "cmaes", "ea", "nsga2"), default = "focussearch"),
         ParamInt$new("infill.opt.restarts", lower = 1, default = 3),
         ParamInt$new("infill.opt.focussearch.maxit", lower = 1, default = 5),
@@ -95,7 +95,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         add_dep("infill.crit.sms.eps", "infill.crit", CondEqual$new("DIB"))$
         add_dep("infill.crit.cb.lambda.start", "infill.crit", CondEqual$new("AdaCB"))$
         add_dep("infill.crit.cb.lambda.end", "infill.crit", CondEqual$new("AdaCB"))$
-        add_dep("infill.filter.proposed.points.tol", "filter.proposed.points", CondEqual$new(TRUE))$
+        add_dep("infill.filter.proposed.points.tol", "infill.filter.proposed.points", CondEqual$new(TRUE))$
         add_dep("infill.opt.focussearch.maxit", "infill.opt", CondEqual$new("focussearch"))$
         add_dep("infill.opt.focussearch.points", "infill.opt", CondEqual$new("focussearch"))$
         add_dep("infill.opt.cmaes.control", "infill.opt", CondEqual$new("cmaes"))$
@@ -105,7 +105,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         add_dep("infill.opt.ea.sbx.p", "infill.opt", CondEqual$new("ea"))$
         add_dep("infill.opt.ea.pm.eta", "infill.opt", CondEqual$new("ea"))$
         add_dep("infill.opt.ea.pm.p", "infill.opt", CondEqual$new("ea"))$
-        add_dep("infill.opt.ea.pm.lambda", "infill.opt", CondEqual$new("ea"))$
+        add_dep("infill.opt.ea.lambda", "infill.opt", CondEqual$new("ea"))$
         add_dep("infill.opt.nsga2.popsize", "infill.opt", CondEqual$new("nsga2"))$
         add_dep("infill.opt.nsga2.generations", "infill.opt", CondEqual$new("nsga2"))$
         add_dep("infill.opt.nsga2.cprob", "infill.opt", CondEqual$new("nsga2"))$
@@ -146,32 +146,35 @@ TunerInterMBO <- R6Class("TunerInterMBO",
   ),
   private = list(
     tune_internal = function(instance) {
+      if (length(instance$measures) < self$n.objectives) {
+        stopf("instance needs to have at least n.objectives (= %s) measures", self$n.objectives)
+      }
       vals <- self$param_set$values
       par.set <- ParamHelpersParamSet(instance$param_set)
       learner <- if (!is.null(vals$surrogate.learner)) GetLearnerFromDesc(vals$surrogate.learner)
-      control <- encapsulate("callr", constructMBOControl, .args = list(vals = vals, n.objectives = self$n.objectives))
+      control <- encall(constructMBOControl, .args = list(vals = vals, n.objectives = self$n.objectives))
       minimize <- map(self$measures, "minimize")
 
-      design <- encapsulate("callr", function(n, ps) {
-        mlrMBO::generateDesign(n, ps)
+      design <- encall(function(n, ps) {
+        ParamHelpers::generateDesign(n, ps)
       }, .args = list(n = vals$initial.design.size %??% length(par.set$pars), ps = par.set))
       self$opt.state <- NULL
 
       repeat {
-        perfs <- instance$eval_batch(as.data.table(design))$perf
+        perfs <- as.data.frame(instance$eval_batch(as.data.table(design))$perf)[seq_len(self$n.objectives)]
 
         if (is.null(self$opt.state)) {
           design$.PERFORMANCE <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
-          self$opt.state <- encapsulate("callr", function(...) {
+          self$opt.state <- encall(function(...) {
             mlrMBO::initSMBO(...)
           }, .args = list(par.set = par.set, design = design, learner = learner, control = control, minimize = minimize))
         } else {
-          self$opt.state <- encapsulate("callr", function(...) {
+          self$opt.state <- encall(function(...) {
             mlrMBO::updateSMBO(...)
-          }, .args = list(opt.state = self$opt.state, x = design, y = perfs))
+          }, .args = list(opt.state = self$opt.state, x = design, y = as.list(as.data.frame(t(perf)))))
         }
 
-        proposition <- encapsulate("callr", function(opt.state) {
+        proposition <- encall(function(opt.state) {
           mlrMBO::proposePoints(opt.state)
         }, .args = list(opt.state = self$opt.state))
         design <- proposition$prop.points
@@ -220,7 +223,7 @@ constructMBOControl <- function(vals, n.objectives) {
     })), recursive = FALSE)
   }
 
-  control <- invoke(mlrMBO::makeMBOControl,
+  control <- mlr3misc::invoke(mlrMBO::makeMBOControl,
     n.objectives = n.objectives, y.name = sprintf(".PERFORMANCE.%s", seq_len(n.objectives)),
     .args = getVals("", c("propose.points", "final.method", "final.evals"), FALSE))
 
@@ -239,11 +242,11 @@ constructMBOControl <- function(vals, n.objectives) {
   }
 
 
-  control <- invoke(mlrMBO::setMBOControlInfill, control = control,
+  control <- mlr3misc::invoke(mlrMBO::setMBOControlInfill, control = control,
     .args = c(getVals("infill.", "crit", FALSE),
       getVals("infill.", c("interleave", "filter", "opt"))))
   if (vals$propose.points %??% 1 != 1) {
-    control <- invoke(mlrMBO::setMBOControlMultiPoint, control = control,
+    control <- mlr3misc::invoke(mlrMBO::setMBOControlMultiPoint, control = control,
       .args = getVals("multipoint."))
   }
   if (n.objectives > 1) {
@@ -255,7 +258,7 @@ constructMBOControl <- function(vals, n.objectives) {
       )
       vals$multiobj.mspot.select.crit.cb.lambda <- NULL
     }
-    control <- invoke(mlrMBO::setMBOControlMultiObj, control = control,
+    control <- mlr3misc::invoke(mlrMBO::setMBOControlMultiObj, control = control,
       .args = getVals("multiobj."))
   }
   # need to overwrite the default isters '10'
@@ -296,7 +299,7 @@ GetLearnerFromDesc <- function(learnerDescription) {
 
 GetLearnerFromDesc.LearnerDesc <- function(learnerDescription) {
   object <- learnerDescription
-  object$object <- encapsulate("callr", function(ld) {
+  object$object <- encall(function(ld) {
     mlr::makeLearner(ld$learnername, par.vals = ld$params)
   }, .args = list(learnerDescription))
   class(object) <- c("LearnerInst", "LearnerDesc")
@@ -339,9 +342,21 @@ ParamHelpersParamSet <- function(paramset) {
       ParamFct = list("makeDiscreteParam", list(id = pname, values = param$levels, requires = getRequires(pname)))
     )
   })
-  encapsulate("callr", function(d) {
-    ParamHelpers$makeParamSet(params = lapply(d, function(pcon) {
+  encall(function(d) {
+    ParamHelpers::makeParamSet(params = lapply(d, function(pcon) {
       do.call(get(pcon[[1]], getNamespace("ParamHelpers"), mode = "function"), pcon[[2]])
     }))
   }, .args = list(d = data))
+}
+
+encall <- function(...) {
+  x <- encapsulate("callr", ...)
+  for (line in transpose_list(x$log)) {
+    switch(line$class,
+      output = catf("%s", line$msg),
+      warning = warning(line$msg),
+      error = stop(line$msg)
+    )
+  }
+  x$result
 }
