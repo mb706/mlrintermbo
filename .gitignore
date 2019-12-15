@@ -27,3 +27,4 @@ Thumbs.db
 .ipynb_checkpoints
 man/*.Rd
 
+*.rds

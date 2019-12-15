@@ -9,8 +9,27 @@ License: AGPL
 Encoding: UTF-8
 Roxygen: list(wrap = FALSE)
 Depends:
-    R (>= 3.0.2)
+    R
+Imports:
+    backports,
+    checkmate,
+    data.table,
+    mlr3misc (>= 0.1.4),
+    paradox,
+    R6
+Suggests:
+    mlrMBO,
+    mlr,
+    ParamHelpers,
+    testthat,
+    rgenoud,
+    DiceKriging,
+    emoa,
+    cmaesr,
+    randomForest,
+    smoof
 LazyData: yes
 ByteCompile: yes
 Version: 0.3.4-2
 VignetteBuilder: knitr
+RoxygenNote: 7.0.2

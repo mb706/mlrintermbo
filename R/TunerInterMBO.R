@@ -70,8 +70,6 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         ParamDbl$new("multipoint.moimbo.sbx.p", lower = 0, upper = 1, default = 1),  # TODO not sure about bounds; is the default correct?
         ParamDbl$new("multipoint.moimbo.pm.eta", lower = 0, default = 15),  # TODO not sure about bound
         ParamDbl$new("multipoint.moimbo.pm.p", lower = 0, upper = 1, default = 1),  # TODO not sure about bounds; is the default correct?moimbo
-        # setMBOControlTermination
-        ParamUty$new("termination.more.termination.conds", custom_check = checkList, default = list()),
         # others
         ParamInt$new("initial.design.size", lower = 1),
         ParamUty$new("surrogate.learner", custom_check = detachEnv(function(x) checkClass(x, "LearnerDesc")))
@@ -84,7 +82,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         ParamInt$new("multiobj.parego.s", lower = 1),
         ParamDbl$new("multiobj.parego.rho", default = 0.05),
         ParamLgl$new("multiobj.parego.use.margin.points", default = FALSE),
-        ParamInt$new("multiobj.parego.sample.more.weights", default = lower = 1),
+        ParamInt$new("multiobj.parego.sample.more.weights", lower = 1),
         ParamFct$new("multiobj.parego.normalize", levels = c("standard", "front"), default = "standard"),
         ParamFct$new("multiobj.dib.indicator", default = c("sms", "eps")),
         ParamFct$new("multiobj.mspot.select.crit", c("MeanResponse", "CB"), default = "MeanResponse"),
@@ -126,8 +124,8 @@ TunerInterMBO <- R6Class("TunerInterMBO",
 
       if (n.objectives > 1) {
         ps$
-          add_dep("multiobj.ref.point.method", "multiobj.method", CondAnyOf$new(c("mspot", "dib"))$
-          add_dep("multiobj.ref.point.offset", "multiobj.ref.point.method", CondAnyOf$new(c("all", "front"))$
+          add_dep("multiobj.ref.point.method", "multiobj.method", CondAnyOf$new(c("mspot", "dib")))$
+          add_dep("multiobj.ref.point.offset", "multiobj.ref.point.method", CondAnyOf$new(c("all", "front")))$
           add_dep("multiobj.ref.point.val", "multiobj.ref.point.method", CondEqual$new("const"))$
           add_dep("multiobj.parego.s", "multiobj.method", CondEqual$new("parego"))$
           add_dep("multiobj.parego.rho", "multiobj.method", CondEqual$new("parego"))$
@@ -154,26 +152,50 @@ TunerInterMBO <- R6Class("TunerInterMBO",
       control <- encapsulate("callr", constructMBOControl, .args = list(vals = vals, n.objectives = self$n.objectives))
       minimize <- map(self$measures, "minimize")
 
-      while (NOT_TERMINATED_BY_MBO) {
-        if (FIRST ROUND) {
-          design <- encapsulate("callr", function(n, ps) {
-            mlrMBO::generateDesign(n, ps)
-          }, .args = list(n = vals$initial.design.size %??% length(par.set$pars), ps = par.set))
-        } else {
-          design <- ENCAPSULATE proposePoints(opt.state)
-        }
-        # TODO: evalaute design
-        if (FIRST ROUND) {
+      design <- encapsulate("callr", function(n, ps) {
+        mlrMBO::generateDesign(n, ps)
+      }, .args = list(n = vals$initial.design.size %??% length(par.set$pars), ps = par.set))
+      self$opt.state <- NULL
+
+      repeat {
+        perfs <- instance$eval_batch(as.data.table(design))$perf
+
+        if (is.null(self$opt.state)) {
+          design$.PERFORMANCE <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
           self$opt.state <- encapsulate("callr", function(...) {
             mlrMBO::initSMBO(...)
           }, .args = list(par.set = par.set, design = design, learner = learner, control = control, minimize = minimize))
         } else {
-          self$opt.state <- ENCAPSULATE {updateSMBO(opt.state, ...) ; opt.state }
+          self$opt.state <- encapsulate("callr", function(...) {
+            mlrMBO::updateSMBO(...)
+          }, .args = list(opt.state = self$opt.state, x = design, y = perfs))
         }
+
+        proposition <- encapsulate("callr", function(opt.state) {
+          mlrMBO::proposePoints(opt.state)
+        }, .args = list(opt.state = self$opt.state))
+        design <- proposition$prop.points
+        proposition$prop.points <- NULL
+        # TODO: the following are overwritten because they appear to be broken in mlrMBO. maybe repair this
+        proposition$crit.components <- NULL
+        proposition$prop.type <- NULL
+        extra <- as.data.frame(proposition, stringsAsFactors = FALSE)
+        # TODO: attach extra data to instance$bmr$rr_data
       }
     },
     assign_result = function(instance) {
-      # get best result from self$opt.state
+      final <- finalizeSMBO(optstate)
+      if (self$n.objectives > 1) {
+        final$pareto.set # (list of named lists in pre-trafo space)
+        # TODO: multicrit is not handled by mlr3tuning, so we don't know what to do here...
+        super$assign_result(instance)
+      } else {
+        rr <- instance$bmr$resample_result(final$best.ind)
+        perf <- rr$aggregate(instance$measures)
+        pv <- instance$bmr$rr_data[rr$uhash, on = "uhash"]$tune_x[[1]]
+        instance$assign_result(pv, perf)
+      }
+      invisible(self)
     }
   )
 )
@@ -199,7 +221,7 @@ constructMBOControl <- function(vals, n.objectives) {
   }
 
   control <- invoke(mlrMBO::makeMBOControl,
-    n.objectives = n.objectives, y.name = "PERFORMANCE",
+    n.objectives = n.objectives, y.name = sprintf(".PERFORMANCE.%s", seq_len(n.objectives)),
     .args = getVals("", c("propose.points", "final.method", "final.evals"), FALSE))
 
   if (!is.null(vals$infill.crit)) {
@@ -237,7 +259,7 @@ constructMBOControl <- function(vals, n.objectives) {
       .args = getVals("multiobj."))
   }
   # need to overwrite the default isters '10'
-  mlrMBO::setMBOControlTermination(control, iters = .Machine$integer.max, .args = getVals("termination.", "more.termination.conds"))
+  mlrMBO::setMBOControlTermination(control, iters = .Machine$integer.max)
 }
 
 
