@@ -2,12 +2,11 @@ Package: mlrintermbo
 Title: An mlrMBO-mlr3-Interface
 Description: mlr3 doing MBO through mlrMBO.
 Authors@R: c(
-    person("Martin", "Binder", email = "developer.mb706@doublecaret.com", role = c("aut", "cre"))
+    person("Martin", "Binder", email = "developer.mb706@doublecaret.com", role = c("aut", "cre")))
 URL: https://github.com/mb706/mlrintermbo
 BugReports: https://github.com/mb706/mlrintermbo/issues
 License: AGPL
 Encoding: UTF-8
-Roxygen: list(wrap = FALSE)
 Depends:
     R
 Imports:
@@ -29,6 +28,7 @@ Suggests:
     randomForest,
     smoof
 LazyData: yes
+Roxygen: list(markdown = TRUE, r6 = FALSE)
 ByteCompile: yes
 Version: 0.3.4-2
 VignetteBuilder: knitr
