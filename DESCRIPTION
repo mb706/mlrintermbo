@@ -15,7 +15,8 @@ Imports:
     data.table,
     mlr3misc (>= 0.1.4),
     paradox,
-    R6
+    R6,
+    lhs
 Suggests:
     mlrMBO,
     mlr,

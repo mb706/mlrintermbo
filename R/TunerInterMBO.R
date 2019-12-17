@@ -152,54 +152,77 @@ TunerInterMBO <- R6Class("TunerInterMBO",
       vals <- self$param_set$values
       par.set <- ParamHelpersParamSet(instance$param_set)
       learner <- if (!is.null(vals$surrogate.learner)) GetLearnerFromDesc(vals$surrogate.learner)
-      control <- encall(constructMBOControl, .args = list(vals = vals, n.objectives = self$n.objectives))
-      minimize <- sapply(self$measures, `[[`, "minimize")
+      minimize <- sapply(instance$measures, `[[`, "minimize")
 
-      init.size <- vals$initial.design.size %??% length(par.set$pars)
+      init.size <- vals$initial.design.size %??% length(par.set$pars) * 4
 
       if (init.size != 0 && instance$n_evals != 0) {
         warning("Both 'initial.design.size' and TuningInstance's n_evals are nonzero, so the initial may be larger than you expect.")
       }
 
       if (init.size > 0) {
-        design <- encall(function(n, ps) {
-          ParamHelpers::generateDesign(n, ps)
-        }, .args = list(n = init.size, ps = par.set))
-        instance$eval_batch(as.data.table(design))
+        instance$eval_batch(generate_design_lhs(instance$param_set, init.size)$data)
+        # so *in principle* we could stop here if the budget is exhausted. However, we
+        # do need to construct the `opt.state` so `assign_result` can do its thing.
+        # Therefore we still need to get to the `constructMBOControl` part.
       }
 
-
-      perfs <- as.data.frame(instance$eval_batch(as.data.table(design))$perf)[seq_len(self$n.objectives)]
-
-      archive <- as.data.frame(instance$bmr$aggregate(instance$measures, ids = FALSE))
+      archive <- as.data.frame(instance$bmr$aggregate(instance$measures[seq_len(self$n.objectives)], ids = FALSE))
       design <- archive[sapply(instance$measures, `[[`, "id")]
       colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
       design <- cbind(do.call(rbind.data.frame, archive$tune_x), design)
-      self$opt.state <- encall(function(...) {
-        mlrMBO::initSMBO(...)
-      }, .args = list(par.set = par.set, design = design, learner = learner, control = control, minimize = minimize))
+      evalres <- encall(function(constructMBOControl, vals, n.objectives, still_needs_proposition, ...) {
+        suppressMessages(library("mlr"))  # this is necessary because dum-dum mlr does things in .onAttach that should be done in .onLoad
+        control <- constructMBOControl(vals = vals, n.objectives = n.objectives)
+        opt.state <- mlrMBO::initSMBO(control = control, ...)
+
+        list(
+          proposition = if (still_needs_proposition) mlrMBO::proposePoints(opt.state),
+          opt.state = serialize(opt.state, NULL)  # the opt.state contains references to namespaces which we don't want to load in the main session; therefore we serialize
+        )
+      }, .args = list(constructMBOControl = constructMBOControl,
+        vals = vals, n.objectives = self$n.objectives,
+        still_needs_proposition = !instance$terminator$is_terminated(instance),  # this is ugly unfortunately; if the initial design exhausts the budget we won't need proposal.
+        par.set = par.set, design = design, learner = learner, minimize = minimize))
+
+      self$opt.state <- evalres$opt.state
+      proposition <- evalres$proposition
+
+      if (is.null(proposition)) {
+        # budget exhausted
+        return(invisible(NULL))
+      }
 
       repeat {
-        proposition <- encall(function(opt.state) {
-          mlrMBO::proposePoints(opt.state)
-        }, .args = list(opt.state = self$opt.state))
         design <- proposition$prop.points
         proposition$prop.points <- NULL
         # TODO: the following are overwritten because they appear to be broken in mlrMBO. maybe repair this
         proposition$crit.components <- NULL
         proposition$prop.type <- NULL
         extra <- as.data.frame(proposition, stringsAsFactors = FALSE)
-        # TODO: attach extra data to instance$bmr$rr_data
         perfs <- as.data.frame(instance$eval_batch(as.data.table(design))$perf)[seq_len(self$n.objectives)]
+        # TODO: attach extra data to instance$bmr$rr_data
 
-        self$opt.state <- encall(function(...) {
-          mlrMBO::updateSMBO(...)
-        }, .args = list(opt.state = self$opt.state, x = design, y = as.list(as.data.frame(t(perf)))))
+        if (instance$terminator$is_terminated(instance)) {
+          return(invisible(NULL))
+        }
 
+        evalres <- encall(function(opt.state, ...) {
+          suppressMessages(library("mlr"))  # this is necessary because dum-dum mlr does things in .onAttach that should be done in .onLoad
+          opt.state <- mlrMBO::updateSMBO(opt.state = unserialize(opt.state), ...)
+          list(proposition = mlrMBO::proposePoints(opt.state), opt.state = serialize(opt.state, NULL))
+        }, .args = list(opt.state = self$opt.state, x = design, y = as.list(as.data.frame(t(perfs)))))
+
+        self$opt.state <- evalres$opt.state
+        proposition <- evalres$proposition
       }
     },
     assign_result = function(instance) {
-      final <- finalizeSMBO(optstate)
+      final <- encall(function(opt.state) {
+        suppressMessages(library("mlr"))  # this is necessary because dum-dum mlr does things in .onAttach that should be done in .onLoad
+        resobj <- mlrMBO::finalizeSMBO(unserialize(opt.state))
+        resobj[intersect(names(resobj), c("pareto.set", "x", "y", "best.ind"))]
+      }, .args = list(opt.state = self$opt.state))
       if (self$n.objectives > 1) {
         final$pareto.set # (list of named lists in pre-trafo space)
         # TODO: multicrit is not handled by mlr3tuning, so we don't know what to do here...
@@ -207,7 +230,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
       } else {
         rr <- instance$bmr$resample_result(final$best.ind)
         perf <- rr$aggregate(instance$measures)
-        pv <- instance$bmr$rr_data[rr$uhash, on = "uhash"]$tune_x[[1]]
+        pv <- instance$bmr$rr_data$tune_x[[final$best.ind]]
         instance$assign_result(pv, perf)
       }
       invisible(self)
@@ -230,7 +253,9 @@ constructMBOControl <- function(vals, n.objectives) {
         take <- intersect(names(vals), v)
       }
       li <- vals[take]
-      names(li) <- sub(delete.prefix, "", names(li), fixed = TRUE)
+      if (nchar(delete.prefix)) {
+        names(li) <- sub(delete.prefix, "", names(li), fixed = TRUE)
+      }
       li
     })), recursive = FALSE)
   }
@@ -257,7 +282,7 @@ constructMBOControl <- function(vals, n.objectives) {
   control <- mlr3misc::invoke(mlrMBO::setMBOControlInfill, control = control,
     .args = c(getVals("infill.", "crit", FALSE),
       getVals("infill.", c("interleave", "filter", "opt"))))
-  if (vals$propose.points %??% 1 != 1) {
+  if (checkmate::`%??%`(vals$propose.points, 1) != 1) {
     control <- mlr3misc::invoke(mlrMBO::setMBOControlMultiPoint, control = control,
       .args = getVals("multipoint."))
   }
@@ -312,6 +337,7 @@ GetLearnerFromDesc <- function(learnerDescription) {
 GetLearnerFromDesc.LearnerDesc <- function(learnerDescription) {
   object <- learnerDescription
   object$object <- encall(function(ld) {
+    suppressMessages(library("mlr"))  # this is necessary because dum-dum mlr does things in .onAttach that should be done in .onLoad
     mlr::makeLearner(ld$learnername, par.vals = ld$params)
   }, .args = list(learnerDescription))
   class(object) <- c("LearnerInst", "LearnerDesc")
@@ -364,7 +390,7 @@ ParamHelpersParamSet <- function(paramset) {
 encall <- function(...) {
   x <- encapsulate("callr", ...)
   for (line in transpose_list(x$log)) {
-    switch(line$class,
+    switch(as.character(line$class),
       output = catf("%s", line$msg),
       warning = warning(line$msg),
       error = stop(line$msg)
