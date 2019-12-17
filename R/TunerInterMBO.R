@@ -71,7 +71,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         ParamDbl$new("multipoint.moimbo.pm.eta", lower = 0, default = 15),  # TODO not sure about bound
         ParamDbl$new("multipoint.moimbo.pm.p", lower = 0, upper = 1, default = 1),  # TODO not sure about bounds; is the default correct?moimbo
         # others
-        ParamInt$new("initial.design.size", lower = 1),
+        ParamInt$new("initial.design.size", lower = 0),
         ParamUty$new("surrogate.learner", custom_check = detachEnv(function(x) checkClass(x, "LearnerDesc")))
       ), if (n.objectives > 1) list(
         # setMBOControlMultiObj
@@ -153,27 +153,33 @@ TunerInterMBO <- R6Class("TunerInterMBO",
       par.set <- ParamHelpersParamSet(instance$param_set)
       learner <- if (!is.null(vals$surrogate.learner)) GetLearnerFromDesc(vals$surrogate.learner)
       control <- encall(constructMBOControl, .args = list(vals = vals, n.objectives = self$n.objectives))
-      minimize <- map(self$measures, "minimize")
+      minimize <- sapply(self$measures, `[[`, "minimize")
 
-      design <- encall(function(n, ps) {
-        ParamHelpers::generateDesign(n, ps)
-      }, .args = list(n = vals$initial.design.size %??% length(par.set$pars), ps = par.set))
-      self$opt.state <- NULL
+      init.size <- vals$initial.design.size %??% length(par.set$pars)
+
+      if (init.size != 0 && instance$n_evals != 0) {
+        warning("Both 'initial.design.size' and TuningInstance's n_evals are nonzero, so the initial may be larger than you expect.")
+      }
+
+      if (init.size > 0) {
+        design <- encall(function(n, ps) {
+          ParamHelpers::generateDesign(n, ps)
+        }, .args = list(n = init.size, ps = par.set))
+        instance$eval_batch(as.data.table(design))
+      }
+
+
+      perfs <- as.data.frame(instance$eval_batch(as.data.table(design))$perf)[seq_len(self$n.objectives)]
+
+      archive <- as.data.frame(instance$bmr$aggregate(instance$measures, ids = FALSE))
+      design <- archive[sapply(instance$measures, `[[`, "id")]
+      colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
+      design <- cbind(do.call(rbind.data.frame, archive$tune_x), design)
+      self$opt.state <- encall(function(...) {
+        mlrMBO::initSMBO(...)
+      }, .args = list(par.set = par.set, design = design, learner = learner, control = control, minimize = minimize))
 
       repeat {
-        perfs <- as.data.frame(instance$eval_batch(as.data.table(design))$perf)[seq_len(self$n.objectives)]
-
-        if (is.null(self$opt.state)) {
-          design$.PERFORMANCE <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
-          self$opt.state <- encall(function(...) {
-            mlrMBO::initSMBO(...)
-          }, .args = list(par.set = par.set, design = design, learner = learner, control = control, minimize = minimize))
-        } else {
-          self$opt.state <- encall(function(...) {
-            mlrMBO::updateSMBO(...)
-          }, .args = list(opt.state = self$opt.state, x = design, y = as.list(as.data.frame(t(perf)))))
-        }
-
         proposition <- encall(function(opt.state) {
           mlrMBO::proposePoints(opt.state)
         }, .args = list(opt.state = self$opt.state))
@@ -184,6 +190,12 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         proposition$prop.type <- NULL
         extra <- as.data.frame(proposition, stringsAsFactors = FALSE)
         # TODO: attach extra data to instance$bmr$rr_data
+        perfs <- as.data.frame(instance$eval_batch(as.data.table(design))$perf)[seq_len(self$n.objectives)]
+
+        self$opt.state <- encall(function(...) {
+          mlrMBO::updateSMBO(...)
+        }, .args = list(opt.state = self$opt.state, x = design, y = as.list(as.data.frame(t(perf)))))
+
       }
     },
     assign_result = function(instance) {
@@ -207,9 +219,9 @@ TunerInterMBO <- R6Class("TunerInterMBO",
 # create mlrMBO control object from parameter values
 constructMBOControl <- function(vals, n.objectives) {
   getVals <- function(delete.prefix, vn = "", vn.is.prefix = TRUE) {
-    assertString(vn)
-    assertString(delete.prefix)
-    assertFlag(vn.is.prefix)
+    checkmate::assertCharacter(vn)
+    checkmate::assertString(delete.prefix)
+    checkmate::assertFlag(vn.is.prefix)
     vn <- paste0(delete.prefix, vn)
     unlist(unname(lapply(vn, function(v) {
       if (vn.is.prefix) {
