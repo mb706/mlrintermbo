@@ -48,3 +48,48 @@ get
 optstatem
 
 finalizeSMBO(optstate)$best.ind
+
+
+
+# ---
+
+
+obj.fun <- smoof::makeSingleObjectiveFunction(
+  fn = function(x) checkmate::assertIntegerish(x$ypar),
+  par.set = mlrCPO::pSS(xpar: numeric[0, 10], ypar: integer[0, 10]),
+  has.simple.signature = FALSE)
+
+ctrl <- makeMBOControl()
+# ctrl <- setMBOControlMultiPoint(ctrl, method = "moimbo")
+ctrl <- setMBOControlInfill(ctrl, makeMBOInfillCritAdaCB())
+mbo(obj.fun, control = ctrl)
+
+
+obj.fun <- smoof::makeMultiObjectiveFunction(
+  fn = function(...) unlist(list(...)),
+  par.set = mlrCPO::pSS(xpar: numeric[0, 10], ypar: integer[0, 10]),
+  has.simple.signature = FALSE)
+ctrl <- makeMBOControl(n.objectives = 2)
+# ctrl <- setMBOControlMultiPoint(ctrl, method = "moimbo")
+ctrl <- setMBOControlInfill(ctrl, makeMBOInfillCritEI())
+ctrl <- setMBOControlMultiObj(ctrl, method = "parego")
+
+mbo(obj.fun, control = ctrl)
+
+
+
+
+ps = makeParamSet(
+  makeNumericParam("q", lower = -1, upper = 2),
+  makeIntegerParam("v", lower = -2, upper = 3)
+)
+des = generateDesign(n = 7, par.set = ps)
+des$y_1 = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
+des$y_2 = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
+ctrl = makeMBOControl(n.objectives = 2)
+ctrl = setMBOControlInfill(ctrl, crit = makeMBOInfillCritEI())
+ctrl = setMBOControlMultiObj(ctrl, method = "parego")
+opt.state = initSMBO(par.set = ps, design = des, control = ctrl, minimize = c(TRUE, TRUE), noisy = FALSE)
+proposePoints(opt.state)
+x = data.frame(q = 1.7, v = 1)
+updateSMBO(opt.state, x = x, y = c(2.19, 2.19))

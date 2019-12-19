@@ -84,7 +84,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         ParamLgl$new("multiobj.parego.use.margin.points", default = FALSE),
         ParamInt$new("multiobj.parego.sample.more.weights", lower = 1),
         ParamFct$new("multiobj.parego.normalize", levels = c("standard", "front"), default = "standard"),
-        ParamFct$new("multiobj.dib.indicator", default = c("sms", "eps")),
+        ParamFct$new("multiobj.dib.indicator", levels = c("sms", "eps"), default = "sms"),
         ParamFct$new("multiobj.mspot.select.crit", c("MeanResponse", "CB"), default = "MeanResponse"),
         ParamDbl$new("multiobj.mspot.select.crit.cb.lambda", special_vals = list(NULL), default = NULL)
       )))$
@@ -171,16 +171,21 @@ TunerInterMBO <- R6Class("TunerInterMBO",
       design <- archive[sapply(instance$measures, `[[`, "id")]
       colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
       design <- cbind(do.call(rbind.data.frame, archive$tune_x), design)
-      evalres <- encall(function(constructMBOControl, vals, n.objectives, still_needs_proposition, ...) {
+      evalres <- encall(function(constructMBOControl, repairParamDF, vals, n.objectives, still_needs_proposition, ...) {
         suppressMessages(library("mlr"))  # this is necessary because dum-dum mlr does things in .onAttach that should be done in .onLoad
         control <- constructMBOControl(vals = vals, n.objectives = n.objectives)
         opt.state <- mlrMBO::initSMBO(control = control, ...)
+        proposition <- NULL
+        if (still_needs_proposition) {
+          proposition <- mlrMBO::proposePoints(opt.state)
+          proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(opt.state$opt.problem$fun), proposition$prop.points)
+        }
 
         list(
-          proposition = if (still_needs_proposition) mlrMBO::proposePoints(opt.state),
+          proposition = proposition,
           opt.state = serialize(opt.state, NULL)  # the opt.state contains references to namespaces which we don't want to load in the main session; therefore we serialize
         )
-      }, .args = list(constructMBOControl = constructMBOControl,
+      }, .args = list(constructMBOControl = detachEnv(constructMBOControl, basis = baseenv()), repairParamDF = detachEnv(repairParamDF, basis = baseenv()),
         vals = vals, n.objectives = self$n.objectives,
         still_needs_proposition = !instance$terminator$is_terminated(instance),  # this is ugly unfortunately; if the initial design exhausts the budget we won't need proposal.
         par.set = par.set, design = design, learner = learner, minimize = minimize))
@@ -189,7 +194,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
       proposition <- evalres$proposition
 
       if (is.null(proposition)) {
-        # budget exhausted
+        # budget exhausted after initial design
         return(invisible(NULL))
       }
 
@@ -200,18 +205,23 @@ TunerInterMBO <- R6Class("TunerInterMBO",
         proposition$crit.components <- NULL
         proposition$prop.type <- NULL
         extra <- as.data.frame(proposition, stringsAsFactors = FALSE)
-        perfs <- as.data.frame(instance$eval_batch(as.data.table(design))$perf)[seq_len(self$n.objectives)]
-        # TODO: attach extra data to instance$bmr$rr_data
+        evals <- instance$eval_batch(as.data.table(design))
+        extra$uhash <- evals$uhashes
+        uinsert(instance$bmr$rr_data, extra, "uhash")
 
         if (instance$terminator$is_terminated(instance)) {
           return(invisible(NULL))
         }
 
-        evalres <- encall(function(opt.state, ...) {
+        perfs <- as.data.frame(evals$perf)[seq_len(self$n.objectives)]
+
+        evalres <- encall(function(repairParamDF, opt.state, ...) {
           suppressMessages(library("mlr"))  # this is necessary because dum-dum mlr does things in .onAttach that should be done in .onLoad
           opt.state <- mlrMBO::updateSMBO(opt.state = unserialize(opt.state), ...)
-          list(proposition = mlrMBO::proposePoints(opt.state), opt.state = serialize(opt.state, NULL))
-        }, .args = list(opt.state = self$opt.state, x = design, y = as.list(as.data.frame(t(perfs)))))
+          proposition <- mlrMBO::proposePoints(opt.state)
+          proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(opt.state$opt.problem$fun), proposition$prop.points)
+          list(proposition = proposition, opt.state = serialize(opt.state, NULL))
+        }, .args = list(repairParamDF = detachEnv(repairParamDF, basis = baseenv()), opt.state = self$opt.state, x = design, y = as.list(as.data.frame(t(perfs)))))
 
         self$opt.state <- evalres$opt.state
         proposition <- evalres$proposition
@@ -237,6 +247,13 @@ TunerInterMBO <- R6Class("TunerInterMBO",
     }
   )
 )
+
+uinsert = function(x, y, key) {
+  cn = setdiff(names(y), key)
+  expr = parse(text = paste0("`:=`(", paste0(sprintf("%1$s=i.%1$s", cn), collapse = ","), ")"))
+  x[y, eval(expr), on = key]
+}
+
 
 
 # create mlrMBO control object from parameter values
@@ -273,7 +290,7 @@ constructMBOControl <- function(vals, n.objectives) {
       AEI = do.call(mlrMBO::makeMBOInfillCritAEI, getVals("infill.crit.", c("aei", "se"))),
       EQI = do.call(mlrMBO::makeMBOInfillCritEQI, getVals("infill.crit.", c("eqi", "se"))),
       DIB = do.call(mlrMBO::makeMBOInfillCritDIB, getVals("infill.crit.", c("cb.lambda", "sms.eps"), FALSE)),
-      AdaCB = do.call(mlrMBO::makeMBOInfillCritDIB, getVals("infill.crit.", "cb.lambda.")),
+      AdaCB = do.call(mlrMBO::makeMBOInfillCritAdaCB, getVals("infill.crit.", "cb.lambda.")),
       stop("bad infill.crit parameter")
     )
   }
@@ -301,6 +318,12 @@ constructMBOControl <- function(vals, n.objectives) {
   # need to overwrite the default isters '10'
   mlrMBO::setMBOControlTermination(control, iters = .Machine$integer.max)
 }
+
+repairParamDF <- function(par.set, df) {
+  do.call(rbind.data.frame, lapply(ParamHelpers::dfRowsToList(df, par.set), ParamHelpers::repairPoint, par.set = par.set))
+}
+
+
 
 
 # removes the environment from fun and potentially wraps it in a new environment
@@ -387,8 +410,8 @@ ParamHelpersParamSet <- function(paramset) {
   }, .args = list(d = data))
 }
 
-encall <- function(...) {
-  x <- encapsulate("callr", ...)
+encall <- function(.f, ...) {
+  x <- encapsulate("callr", .f = detachEnv(.f, basis = baseenv()), ...)
   for (line in transpose_list(x$log)) {
     switch(as.character(line$class),
       output = catf("%s", line$msg),

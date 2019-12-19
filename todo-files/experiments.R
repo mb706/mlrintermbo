@@ -12,11 +12,13 @@ library("data.table")
 ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 ti <- TuningInstance$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("cv"), msrs(c("classif.auc")), ps, term("evals", n_evals = 11))
 
-tuner = TunerInterMBO$new()
+tuner <- TunerInterMBO$new()
 
-debug(tuner$.__enclos_env__$private$tune_internal)
+# debug(tuner$.__enclos_env__$private$tune_internal)
 
 tuner$tune(ti)
+
+ti
 
 
 
