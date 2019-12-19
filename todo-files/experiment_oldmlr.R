@@ -58,10 +58,9 @@ obj.fun <- smoof::makeSingleObjectiveFunction(
   fn = function(x) checkmate::assertIntegerish(x$ypar),
   par.set = mlrCPO::pSS(xpar: numeric[0, 10], ypar: integer[0, 10]),
   has.simple.signature = FALSE)
-
 ctrl <- makeMBOControl()
 # ctrl <- setMBOControlMultiPoint(ctrl, method = "moimbo")
-ctrl <- setMBOControlInfill(ctrl, makeMBOInfillCritAdaCB())
+ctrl <- setMBOControlInfill(ctrl, makeMBOInfillCritAdaCB(), opt = "nsga2")
 mbo(obj.fun, control = ctrl)
 
 
@@ -71,9 +70,8 @@ obj.fun <- smoof::makeMultiObjectiveFunction(
   has.simple.signature = FALSE)
 ctrl <- makeMBOControl(n.objectives = 2)
 # ctrl <- setMBOControlMultiPoint(ctrl, method = "moimbo")
-ctrl <- setMBOControlInfill(ctrl, makeMBOInfillCritEI())
-ctrl <- setMBOControlMultiObj(ctrl, method = "parego")
-
+ctrl <- setMBOControlInfill(ctrl, crit = makeMBOInfillCritDIB(), opt = "nsga2")
+ctrl <- setMBOControlMultiObj(ctrl, method = "dib")
 mbo(obj.fun, control = ctrl)
 
 
@@ -93,3 +91,30 @@ opt.state = initSMBO(par.set = ps, design = des, control = ctrl, minimize = c(TR
 proposePoints(opt.state)
 x = data.frame(q = 1.7, v = 1)
 updateSMBO(opt.state, x = x, y = c(2.19, 2.19))
+
+
+ps = makeParamSet(
+  makeNumericParam("q", lower = -1, upper = 2),
+  makeIntegerParam("v", lower = -2, upper = 3)
+)
+des = generateDesign(n = 7, par.set = ps)
+des$y = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
+ctrl = makeMBOControl()
+ctrl = setMBOControlInfill(ctrl, opt = "cmaes")
+opt.state = initSMBO(par.set = ps, design = des, control = ctrl, minimize = TRUE, noisy = FALSE)
+proposePoints(opt.state)
+x = data.frame(q = 1.7, v = 1)
+updateSMBO(opt.state, x = x, y = c(2.19, 2.19))
+
+ps = makeParamSet(
+  makeNumericParam("q", lower = -1, upper = 2),
+  makeIntegerParam("v", lower = -2, upper = 3)
+)
+des = generateDesign(n = 7, par.set = ps)
+des$y = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
+ctrl = makeMBOControl(propose.points = 2)
+ctrl = setMBOControlMultiPoint(ctrl, method = "moimbo")
+opt.state = initSMBO(par.set = ps, design = des, control = ctrl, minimize = TRUE, noisy = FALSE)
+proposition <- proposePoints(opt.state)
+
+proposition$prop.points

@@ -65,15 +65,15 @@ jobs:
       env: github-mlr
       script:
         - R CMD build .
-        - travis_wait 100 R CMD check mlrCPO*.tar.gz --as-cran --run-donttest
-        - grep -q -R "WARNING" "mlrCPO.Rcheck/00check.log" ; [ $? -ne 0 ]
+        - travis_wait 100 R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
+        - grep -q -R "WARNING" "mlrintermbo.Rcheck/00check.log" ; [ $? -ne 0 ]
     - stage: test
       env: cran-mlr
       script:
         - Rscript -e 'installed.packages()[c("BBmisc", "ParamHelpers", "mlr"), 2:3]'
         - R CMD build .
-        - travis_wait 100 R CMD check mlrCPO*.tar.gz --as-cran --run-donttest
-        - grep -q -R "WARNING" "mlrCPO.Rcheck/00check.log" ; [ $? -ne 0 ]
+        - travis_wait 100 R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
+        - grep -q -R "WARNING" "mlrintermbo.Rcheck/00check.log" ; [ $? -ne 0 ]
     - stage: covr
       env: github-mlr
       script:

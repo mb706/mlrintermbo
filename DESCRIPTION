@@ -1,5 +1,5 @@
 Package: mlrintermbo
-Title: An mlrMBO-mlr3-Interface
+Title: An 'mlrMBO'-'mlr3'-Interface
 Description: mlr3 doing MBO through mlrMBO.
 Authors@R: c(
     person("Martin", "Binder", email = "developer.mb706@doublecaret.com", role = c("aut", "cre")))
@@ -7,8 +7,6 @@ URL: https://github.com/mb706/mlrintermbo
 BugReports: https://github.com/mb706/mlrintermbo/issues
 License: AGPL
 Encoding: UTF-8
-Depends:
-    R
 Imports:
     backports,
     checkmate,
@@ -16,7 +14,8 @@ Imports:
     mlr3misc (>= 0.1.4),
     paradox,
     R6,
-    lhs
+    lhs,
+    mlr3tuning
 Suggests:
     mlrMBO,
     mlr,
@@ -27,10 +26,12 @@ Suggests:
     emoa,
     cmaesr,
     randomForest,
-    smoof
+    smoof,
+    lgr,
+    mlr3,
+    rpart
 LazyData: yes
 Roxygen: list(markdown = TRUE, r6 = FALSE)
 ByteCompile: yes
 Version: 0.3.4-2
-VignetteBuilder: knitr
 RoxygenNote: 7.0.2

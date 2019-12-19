@@ -15,7 +15,7 @@
 #'
 #' @export
 TunerInterMBO <- R6Class("TunerInterMBO",
-  inherit = Tuner,
+  inherit = mlr3tuning::Tuner,
   public = list(
     n.objectives = NULL,
     opt.state = NULL,
