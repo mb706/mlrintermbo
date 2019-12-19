@@ -340,8 +340,17 @@ detachEnv <- function(fun, keep = character(0), basis = topenv(parent.frame())) 
   fun
 }
 
-# constructs a learner in an R-session if `check` is TRUE, otherwise
-# just stores the parameters
+#' @title Learner Description without loading mlr
+#'
+#' @description
+#' constructs a learner in an R-session if `check` is TRUE, otherwise
+#' just stores the parameters
+#'
+#' @param learnername name of the learner
+#' @param params named hyperparameter value list
+#' @param check whether to construct the learner
+#' @return LearnerDescription object.
+#' @export
 LearnerDescription <- function(learnername, params, check = TRUE) {
   assertCharacter(learnername)
   assertList(params, names = "unique")
@@ -353,6 +362,14 @@ LearnerDescription <- function(learnername, params, check = TRUE) {
   }
 }
 
+#' @title Construct a Learner without loading mlr
+#'
+#' @description
+#' constructs a learner in an R-session if the learner description was not constructed with 'check = TRUE'.
+#'
+#' @param learnerDescription a LearnerDescription() constructed object.
+#' @return LearnerInnst object.
+#' @export
 GetLearnerFromDesc <- function(learnerDescription) {
   UseMethod("GetLearnerFromDesc")
 }
