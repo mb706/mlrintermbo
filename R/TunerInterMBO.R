@@ -145,7 +145,7 @@ TunerInterMBO <- R6Class("TunerInterMBO",
     }
   ),
   private = list(
-    tune_internal = function(instance) {
+    .tune = function(instance) {
       if (length(instance$measures) < self$n.objectives) {
         stopf("instance needs to have at least n.objectives (= %s) measures", self$n.objectives)
       }
