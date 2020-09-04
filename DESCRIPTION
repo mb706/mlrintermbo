@@ -15,9 +15,9 @@ Imports:
     paradox,
     R6,
     lhs,
-    mlr3tuning
-Suggests:
     mlrMBO,
+    bbotk
+Suggests:
     mlr,
     ParamHelpers,
     testthat,

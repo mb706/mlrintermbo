@@ -7,8 +7,7 @@
 
 .onLoad = function(libname, pkgname) {
   backports::import(pkgname)
+  warnIfPHLoaded()
 }
 
-.onAttach = function(libname, pkgname) {
-
-}
+leanify_package()
