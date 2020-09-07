@@ -1,7 +1,7 @@
 language: r
 sudo: false
 cache: packages
-dist: trusty
+dist: focal
 r:
   - release
 
