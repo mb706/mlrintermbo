@@ -60,7 +60,8 @@ encall <- function(session, expr, ..., .detach.env = topenv(parent.frame())) {
     session$read()  # need this to reset session's internal readiness indicator after startup.
   }
 
-  output <- session$run_with_output(args = list(fun = fun, args = args), function(fun, args) {
+  output <- session$run_with_output(args = list(fun = fun, args = args, seed = runif(1) * 2^31), function(fun, args, seed) {
+    set.seed(seed)
     captureSpecials(do.call(fun, args))
   })
 
