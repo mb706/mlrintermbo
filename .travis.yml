@@ -67,7 +67,7 @@ jobs:
         - Rscript -e 'devtools::install_github("mlr-org/mlr3misc")'
         - travis_wait 100 Rscript -e 'library(BBmisc);covr::codecov(quiet=FALSE)'
     - stage: document
-      env: cran-mlr
+      env: github-mlr
       script:
         - true
       before_deploy:
