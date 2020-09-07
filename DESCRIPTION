@@ -15,8 +15,9 @@ Imports:
     paradox,
     R6,
     lhs,
-    mlrMBO,
-    bbotk
+    callr,
+    bbotk,
+    mlr3tuning
 Suggests:
     mlr,
     ParamHelpers,
@@ -29,9 +30,21 @@ Suggests:
     smoof,
     lgr,
     mlr3,
+    mlr3learners,
+    mlr3pipelines,
+    mlrMBO,
     rpart
 LazyData: yes
 Roxygen: list(markdown = TRUE, r6 = FALSE)
 ByteCompile: yes
-Version: 0.3.4-2
-RoxygenNote: 7.0.2
+Version: 0.4.0
+RoxygenNote: 7.1.1
+Collate: 
+    'utils.R'
+    'CapsuledMlr3Learner.R'
+    'ParamHelpersParamSet.R'
+    'optimize.R'
+    'paramset.R'
+    'TunerInterMBO.R'
+    'surrogates.R'
+    'zzz.R'

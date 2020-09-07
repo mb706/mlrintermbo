@@ -113,8 +113,52 @@ ps = makeParamSet(
 des = generateDesign(n = 7, par.set = ps)
 des$y = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
 ctrl = makeMBOControl(propose.points = 2)
+
+
 ctrl = setMBOControlMultiPoint(ctrl, method = "moimbo")
 opt.state = initSMBO(par.set = ps, design = des, control = ctrl, minimize = TRUE, noisy = FALSE)
 proposition <- proposePoints(opt.state)
 
 proposition$prop.points
+
+encing
+
+
+
+
+
+
+
+ctrl <- setMBOControlInfill(makeMBOControl(propose.points = 2, n.objectives = 2), crit = makeMBOInfillCritDIB(), opt = "nsga2", opt.nsga2.popsize = 80, opt.nsga2.generations = 30 , opt.nsga2.cprob = .6, opt.nsga2.cdist = 4, opt.nsga2.mprob = .3, opt.nsga2.mdist = 11)
+ps = makeParamSet(
+  makeNumericParam("q", lower = -1, upper = 2),
+  makeIntegerParam("v", lower = -2, upper = 3)
+)
+des = generateDesign(n = 7, par.set = ps)
+des$y_1 = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
+des$y_2 = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
+opt.state = initSMBO(par.set = ps, design = des, control = ctrl, minimize = c(TRUE, TRUE), noisy = FALSE)
+proposition <- proposePoints(opt.state)
+
+ps = makeParamSet(
+  makeNumericParam("q", lower = -1, upper = 2),
+  makeIntegerParam("v", lower = -2, upper = 3)
+)
+des = generateDesign(n = 7, par.set = ps)
+des$y = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
+opt.state = initSMBO(par.set = ps, design = des, control = ctrl, minimize = TRUE, noisy = FALSE)
+
+
+proposition <- proposePoints(opt.state)
+
+
+
+
+ps = makeParamSet(
+  makeNumericParam("q", lower = -1, upper = 2),
+  makeIntegerParam("v", lower = -2, upper = 3)
+)
+des = generateDesign(n = 7, par.set = ps)
+des$y = c(1.20, 0.97, 0.91, 3.15, 0.58, 1.12, 0.50)
+ctrl = makeMBOControl()
+ctrl = setMBOControlInfill(ctrl, crit = makeMBOInfillCritMeanResponse())

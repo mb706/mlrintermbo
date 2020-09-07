@@ -50,36 +50,21 @@ jobs:
       env: github-mlr
       script:
           # github mlr & tools
-        - Rscript -e 'devtools::install_github("berndbischl/BBmisc")'
-        - Rscript -e 'devtools::install_github("berndbischl/ParamHelpers")'
-        - Rscript -e 'devtools::install_github("mlr-org/mlr")'
-        - echo 'Filled the cache with installed R packages.'
-        - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
-    - stage: install
-      env: cran-mlr
-      script:
-          # cran mlr & tools
+        - Rscript -e 'devtools::install_github("mlr-org/mlr3learners")'
+        - Rscript -e 'devtools::install_github("mlr-org/mlr3misc")'
         - echo 'Filled the cache with installed R packages.'
         - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
     - stage: test
       env: github-mlr
       script:
-        - R CMD build .
-        - travis_wait 100 R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
-        - grep -q -R "WARNING" "mlrintermbo.Rcheck/00check.log" ; [ $? -ne 0 ]
-    - stage: test
-      env: cran-mlr
-      script:
-        - Rscript -e 'installed.packages()[c("BBmisc", "ParamHelpers", "mlr"), 2:3]'
         - R CMD build .
         - travis_wait 100 R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
         - grep -q -R "WARNING" "mlrintermbo.Rcheck/00check.log" ; [ $? -ne 0 ]
     - stage: covr
       env: github-mlr
       script:
-        - Rscript -e 'devtools::install_github("berndbischl/BBmisc")'
-        - Rscript -e 'devtools::install_github("berndbischl/ParamHelpers")'
-        - Rscript -e 'devtools::install_github("mlr-org/mlr")'
+        - Rscript -e 'devtools::install_github("mlr-org/mlr3learners")'
+        - Rscript -e 'devtools::install_github("mlr-org/mlr3misc")'
         - travis_wait 100 Rscript -e 'library(BBmisc);covr::codecov(quiet=FALSE)'
     - stage: document
       env: cran-mlr

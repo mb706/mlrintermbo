@@ -1,7 +1,8 @@
 #' @include utils.R
+#' @include ParamHelpersParamSet.R
+#' @include CapsuledMlr3Learner.R
 
 optimize <- function(instance) {
-
   warnIfPHLoaded()
 
   if (instance$objective$codomain$length != self$n.objectives) {
@@ -9,18 +10,36 @@ optimize <- function(instance) {
   }
 
   vals <- self$param_set$values
+
+  if (identical(vals$multiobj.method, "mspot") || identical(vals$multiobj.method, "parego")) {
+    warning("When this function was written, mlrMBO had a bug that prevented mspot / parego multiobjective optimization from working.
+See https://github.com/mlr-org/mlrMBO/issues/474")
+  }
+
   n.objectives <- self$n.objectives
-  par.set <- ParamHelpersParamSet(instance$search_space)
-  learner <- if (!is.null(vals$surrogate.learner)) GetLearnerFromDesc(vals$surrogate.learner)  # TODO
+  on.surrogate.error <- self$on.surrogate.error
+  par.set <- ParamHelpersParamSet(self$r.session, instance$search_space)
+  learner <- vals$surrogate.learner
 
   init.size <- vals$initial.design.size %??% length(par.set$pars) * 4
 
   if (init.size != 0 && instance$archive$n_evals != 0) {
     warning("Both 'initial.design.size' and number of instance's previously evaluated points are nonzero, so the initial may be larger than you expect.")
   }
+  if (init.size == 0 && instance$archive$n_evals == 0) {
+    stop("Initial design must not be 0. Either use an Optimization / Tuning Instance with present evaluations, or set 'initial.design.size' > 0.")
+  }
 
-  if (init.size > 0) {
-    instance$eval_batch(generate_design_lhs(instance$param_set, init.size)$data)
+  if (vals$propose.points %??% 1 > 1 &&
+      vals$multipoint.method %??% "cb" == "cb" &&
+      vals$infill.crit %??% "CB" != "CB") {
+    stop("for multipoint.method 'cb', infill.crit must be 'CB'.")
+  }
+
+  # don't eval_batch if the instance is already terminated. Will need to check this again *after* the initial design
+  if (init.size > 0 && !instance$terminator$is_terminated(instance$archive)) {
+    ## TODO: This is in contradiction to what mlrMBO usually does. depends on https://github.com/mlr-org/paradox/issues/307
+    instance$eval_batch(generate_design_random(instance$search_space, init.size)$data)
   }
   # so *in principle* we could stop here if the budget is exhausted. However, we
   # do need to construct the `opt.state` so `assign_result` can do its thing.
@@ -29,36 +48,35 @@ optimize <- function(instance) {
   # The following therefore tells the encall() further down whether to generate a proposal.
   still.needs.proposition <- !instance$terminator$is_terminated(instance$archive)
 
-
   design <- as.data.frame(instance$archive$data()[, instance$objective$codomain$ids(), with = FALSE])
   colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
   design <- cbind(do.call(rbind.data.frame, instance$archive$data()$x_domain), design)
+  minimize <- unname(map_lgl(instance$objective$codomain$tags, function(x) "minimize" %in% x))  # important to unname, mlrMBO fails otherwise
 
-  evalres <- encall(constructMBOControl, repairParamDF, vals, n.objectives, still.needs.proposition, par.set, design, learner, expr = {
-    suppressMessages(library("mlr"))  # this is necessary because mlr does things in .onAttach that should be done in .onLoad
-    control <- constructMBOControl(vals = vals, n.objectives = n.objectives)
-    opt.state <- mlrMBO::initSMBO(control = control, par.set = par.set, design = design, learner = learner)
+  proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {
+
+    control <- constructMBOControl(vals = vals, n.objectives = n.objectives, on.surrogate.error = on.surrogate.error)
+
+    # that's right, we save the opt.state inside the background R session. It contains lots of stuff, none of which we need
+    # in the main R session.
+    opt.state <<- mlrMBO::initSMBO(control = control, par.set = par.set, minimize = minimize, design = design, learner = if (!is.null(learner)) makeCapsuledLearner(learner))
+
     proposition <- NULL
     if (still.needs.proposition) {
       proposition <- mlrMBO::proposePoints(opt.state)
       proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(opt.state$opt.problem$fun), proposition$prop.points)
     }
 
-    list(
-      proposition = proposition,
-      # the opt.state contains references to namespaces which we don't want to load in the main session; therefore we serialize
-      opt.state = serialize(opt.state, NULL)
-    )
+    # also save the design inside the background R session, this saves us from having to send data over the process gap
+    design <<- proposition$prop.points
+
+    proposition
   })
-
+  if (is.null(proposition)) {
+    # budget exhausted after initial design
+    return(invisible(NULL))
+  }
   repeat {
-    opt.state <- self$opt.state <- evalres$opt.state
-    proposition <- evalres$proposition
-    if (is.null(proposition)) {
-      # budget exhausted after initial design
-      return(invisible(NULL))
-    }
-
     design <- proposition$prop.points
     proposition$prop.points <- NULL
 
@@ -68,51 +86,39 @@ optimize <- function(instance) {
     extra <- as.data.frame(proposition, stringsAsFactors = FALSE)
     evals <- instance$eval_batch(as.data.table(cbind(design, extra)))
 
-    if (instance$terminator$is_terminated(instance)) {
+    if (instance$terminator$is_terminated(instance$archive)) {
       return(invisible(NULL))
     }
     perfs <- as.data.frame(evals)[seq_len(n.objectives)]
 
-    evalres <- encall(repairParamDF, opt.state, design, perfs, expr = {
-      suppressMessages(library("mlr"))  # this is necessary because dum-dum mlr does things in .onAttach that should be done in .onLoad
-      opt.state <- mlrMBO::updateSMBO(opt.state = unserialize(opt.state), x = design, y = as.list(as.data.frame(t(perfs))))
+    proposition <- encall(self$r.session, perfs, expr = {
+      # using the saved design & opt.state here; save the new opt.state righ taway
+      opt.state <<- mlrMBO::updateSMBO(opt.state = opt.state, x = design, y = as.list(as.data.frame(t(perfs))))
       proposition <- mlrMBO::proposePoints(opt.state)
       proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(opt.state$opt.problem$fun), proposition$prop.points)
-      list(proposition = proposition, opt.state = serialize(opt.state, NULL))
+      design <<- proposition$prop.points  # save the design again
+      proposition
     })
   }
 }
 
 assignResult <- function(instance) {
-  opt.state <- self$opt.state
-
-  final <- encall(opt.state, expr = {
-    suppressMessages(library("mlr"))  # this is necessary because dum-dum mlr does things in .onAttach that should be done in .onLoad
-    resobj <- mlrMBO::finalizeSMBO(unserialize(opt.state))
-    resobj[intersect(names(resobj), c("pareto.set", "x", "y", "best.ind"))]
+  best <- encall(self$r.session, expr = {
+    resobj <- mlrMBO::finalizeSMBO(opt.state)
+    if (!is.null(resobj$pareto.inds)) resobj$pareto.inds else resobj$best.ind
   })
-  browser()
-  if (self$n.objectives > 1) {
-    final$pareto.set # (list of named lists in pre-trafo space)
-    # TODO: multicrit is not handled by mlr3tuning, so we don't know what to do here...
-    super$assign_result(instance)
+  xdt <- instance$archive$data()[best, instance$search_space$ids(), with = FALSE]
+  ydt <- instance$archive$data()[best, instance$objective$codomain$ids(), with = FALSE]
+  if (inherits(instance, "OptimInstanceMultiCrit")) {
+    instance$assign_result(xdt, ydt)
   } else {
-    rr <- instance$bmr$resample_result(final$best.ind)
-    perf <- rr$aggregate(instance$measures)
-    pv <- instance$bmr$rr_data$tune_x[[final$best.ind]]
-    instance$assign_result(pv, perf)
+    instance$assign_result(xdt, unlist(ydt))
   }
   invisible(self)
 }
 
-uinsert = function(x, y, key) {
-  cn = setdiff(names(y), key)
-  expr = parse(text = paste0("`:=`(", paste0(sprintf("%1$s=i.%1$s", cn), collapse = ","), ")"))
-  x[y, eval(expr), on = key]
-}
-
 # create mlrMBO control object from parameter values
-constructMBOControl <- function(vals, n.objectives) {
+constructMBOControl <- function(vals, n.objectives, on.surrogate.error) {
   getVals <- function(delete.prefix, vn = "", vn.is.prefix = TRUE) {
     checkmate::assertCharacter(vn)
     checkmate::assertString(delete.prefix)
@@ -133,7 +139,8 @@ constructMBOControl <- function(vals, n.objectives) {
   }
 
   control <- mlr3misc::invoke(mlrMBO::makeMBOControl,
-    n.objectives = n.objectives, y.name = sprintf(".PERFORMANCE.%s", seq_len(n.objectives)),
+    n.objectives = n.objectives, on.surrogate.error = on.surrogate.error,
+    y.name = sprintf(".PERFORMANCE.%s", seq_len(n.objectives)),
     .args = getVals("", c("propose.points", "final.method", "final.evals"), FALSE))
 
   if (!is.null(vals$infill.crit)) {
@@ -172,8 +179,10 @@ constructMBOControl <- function(vals, n.objectives) {
   # need to overwrite the default isters '10'
   mlrMBO::setMBOControlTermination(control, iters = .Machine$integer.max)
 }
+registerEncallFunction(constructMBOControl)
 
 # call ParamHelpers::repairPoint on each data frame row
 repairParamDF <- function(par.set, df) {
   do.call(rbind.data.frame, lapply(ParamHelpers::dfRowsToList(df, par.set), ParamHelpers::repairPoint, par.set = par.set))
 }
+registerEncallFunction(repairParamDF)

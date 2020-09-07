@@ -5,20 +5,19 @@ mboParamSet <- function(n.objectives) {
     # setMBOControl
     ParamInt$new("propose.points", lower = 1, default = 1),
     ParamFct$new("final.method", levels = c("best.true.y", "last.proposed", "best.predicted"), default = "best.true.y"),
-    ParamInt$new("final.evals", lower = 0, default = 0),
     # setMBOControlInfill
     ParamFct$new("infill.crit", levels = c("MeanResponse", "StandardError", "EI", "CB", "AEI", "EQI", "DIB", "AdaCB"), default = "CB"),
     ParamDbl$new("infill.crit.se.threshold", lower = 0, default = 1e-6),
     ParamDbl$new("infill.crit.cb.lambda", special_vals = list(NULL), default = NULL),
     ParamLgl$new("infill.crit.aei.use.nugget", default = FALSE),
-    ParamDbl$new("infill.crit.eqi.beta", lower = 0, upper = 1, default = 0.75),  # TODO not sure about bounds
+    ParamDbl$new("infill.crit.eqi.beta", lower = 0.5, upper = 1, default = 0.75),  # TODO not sure about bounds
     ParamDbl$new("infill.crit.sms.eps", lower = 0, special_vals = list(NULL), default = NULL),
     ParamDbl$new("infill.crit.cb.lambda.start", special_vals = list(NULL), default = NULL),
     ParamDbl$new("infill.crit.cb.lambda.end", special_vals = list(NULL), default = NULL),
     ParamInt$new("infill.interleave.random.points", lower = 0, default = 0),
     ParamLgl$new("infill.filter.proposed.points", default = FALSE),
     ParamDbl$new("infill.filter.proposed.points.tol", lower = 0, default = 1e-4),
-    ParamFct$new("infill.opt", levels = c("focussearch", "cmaes", "ea", "nsga2"), default = "focussearch"),
+    ParamFct$new("infill.opt", levels = c("focussearch", "cmaes", "ea", if (n.objectives > 1) "nsga2"), default = "focussearch"),
     ParamInt$new("infill.opt.restarts", lower = 1, default = 3),
     ParamInt$new("infill.opt.focussearch.maxit", lower = 1, default = 5),
     ParamInt$new("infill.opt.focussearch.points", lower = 1, default = 1000),
@@ -29,13 +28,15 @@ mboParamSet <- function(n.objectives) {
     ParamDbl$new("infill.opt.ea.sbx.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?
     ParamDbl$new("infill.opt.ea.pm.eta", lower = 0, default = 15),  # TODO not sure about bounds
     ParamDbl$new("infill.opt.ea.pm.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?
-    ParamInt$new("infill.opt.ea.lambda", lower = 1, default = 1),
+    ParamInt$new("infill.opt.ea.lambda", lower = 1, default = 1)
+  ), if (n.objectives > 1) list(
     ParamInt$new("infill.opt.nsga2.popsize", lower = 1, default = 100),
     ParamInt$new("infill.opt.nsga2.generations", lower = 1, default = 50),
     ParamDbl$new("infill.opt.nsga2.cprob", lower = 0, upper = 1, default = 0.7),
     ParamDbl$new("infill.opt.nsga2.cdist", lower = 0, default = 5), # TODO not sure about bound
     ParamDbl$new("infill.opt.nsga2.mprob", lower = 0, upper = 1, default = 0.2),
-    ParamDbl$new("infill.opt.nsga2.mdist", lower = 0, default = 10),
+    ParamDbl$new("infill.opt.nsga2.mdist", lower = 0, default = 10)
+  ), list(
     # setMBOControlMultiPoint
     ParamFct$new("multipoint.method", levels = c("cb", "moimbo", "cl"), default = "cb"),
       # multipoint.method == cb --> do not define infill.opt.cb.lambda
@@ -52,7 +53,7 @@ mboParamSet <- function(n.objectives) {
     ParamDbl$new("multipoint.moimbo.pm.p", lower = 0, upper = 1, default = 1),  # TODO not sure about bounds; is the default correct?moimbo
     # others
     ParamInt$new("initial.design.size", lower = 0),
-    ParamUty$new("surrogate.learner", custom_check = detachEnv(function(x) checkClass(x, "LearnerDesc")))
+    ParamUty$new("surrogate.learner", custom_check = detachEnv(function(x) checkClass(x, "Learner", null.ok = TRUE)))
   ), if (n.objectives > 1) list(
     # setMBOControlMultiObj
     ParamFct$new("multiobj.method", levels = c("parego", "dib", "mspot"), default= "dib"),
@@ -86,12 +87,6 @@ mboParamSet <- function(n.objectives) {
     add_dep("infill.opt.ea.pm.eta", "infill.opt", CondEqual$new("ea"))$
     add_dep("infill.opt.ea.pm.p", "infill.opt", CondEqual$new("ea"))$
     add_dep("infill.opt.ea.lambda", "infill.opt", CondEqual$new("ea"))$
-    add_dep("infill.opt.nsga2.popsize", "infill.opt", CondEqual$new("nsga2"))$
-    add_dep("infill.opt.nsga2.generations", "infill.opt", CondEqual$new("nsga2"))$
-    add_dep("infill.opt.nsga2.cprob", "infill.opt", CondEqual$new("nsga2"))$
-    add_dep("infill.opt.nsga2.cdist", "infill.opt", CondEqual$new("nsga2"))$
-    add_dep("infill.opt.nsga2.mprob", "infill.opt", CondEqual$new("nsga2"))$
-    add_dep("infill.opt.nsga2.mdist", "infill.opt", CondEqual$new("nsga2"))$
     add_dep("multipoint.cl.lie", "multipoint.method", CondEqual$new("cl"))$
     add_dep("multipoint.moimbo.objective", "multipoint.method", CondEqual$new("moimbo"))$
     add_dep("multipoint.moimbo.dist", "multipoint.method", CondEqual$new("moimbo"))$
@@ -104,6 +99,12 @@ mboParamSet <- function(n.objectives) {
 
   if (n.objectives > 1) {
     ps$
+      add_dep("infill.opt.nsga2.popsize", "infill.opt", CondEqual$new("nsga2"))$
+      add_dep("infill.opt.nsga2.generations", "infill.opt", CondEqual$new("nsga2"))$
+      add_dep("infill.opt.nsga2.cprob", "infill.opt", CondEqual$new("nsga2"))$
+      add_dep("infill.opt.nsga2.cdist", "infill.opt", CondEqual$new("nsga2"))$
+      add_dep("infill.opt.nsga2.mprob", "infill.opt", CondEqual$new("nsga2"))$
+      add_dep("infill.opt.nsga2.mdist", "infill.opt", CondEqual$new("nsga2"))$
       add_dep("multiobj.ref.point.method", "multiobj.method", CondAnyOf$new(c("mspot", "dib")))$
       add_dep("multiobj.ref.point.offset", "multiobj.ref.point.method", CondAnyOf$new(c("all", "front")))$
       add_dep("multiobj.ref.point.val", "multiobj.ref.point.method", CondEqual$new("const"))$
@@ -117,4 +118,8 @@ mboParamSet <- function(n.objectives) {
       add_dep("multiobj.mspot.select.crit.cb.lambda", "multiobj.mspot.select.crit", CondEqual$new("CB"))
   }
   ps
+
+  ## Removed:
+  ## ParamInt$new("final.evals", lower = 0, default = 0) -- would probably not make sense, see https://github.com/mlr-org/mlrMBO/issues/498
+
 }

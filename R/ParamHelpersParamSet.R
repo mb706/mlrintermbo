@@ -1,7 +1,7 @@
 #' @include utils.R
 
 # ParamHelpers::ParamSet from paradox::ParamSet
-ParamHelpersParamSet <- function(paramset) {
+ParamHelpersParamSet <- function(session, paramset) {
   getRequires <- function(depname) {
     conds <- paramset$deps[get("id") == depname]
     cond.expressions <- mapply(conditionAsExpression, conds$cond, conds$on)
@@ -15,7 +15,7 @@ ParamHelpersParamSet <- function(paramset) {
       ParamFct = list("makeDiscreteParam", list(id = pname, values = param$levels, requires = getRequires(pname)))
     )
   })
-  encall(data, expr = {
+  encall(session, data, expr = {
     ParamHelpers::makeParamSet(params = lapply(data, function(pcon) {
       do.call(get(pcon[[1]], getNamespace("ParamHelpers"), mode = "function"), pcon[[2]])
     }))
