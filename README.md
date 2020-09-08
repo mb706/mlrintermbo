@@ -1,4 +1,4 @@
-# mlrintermbo: mlrMBO-mlr3-interface <img src="todo-files/mlrintermbo.png" width="300" align="right" />
+# mlrintermbo: mlrMBO mlr3 Interface <img src="todo-files/mlrintermbo.png" width="300" align="right" />
 
 [![Build Status](https://travis-ci.org/mb706/mlrintermbo.svg?branch=master)](https://travis-ci.org/mb706/mlrintermbo)
 [![Coverage](https://codecov.io/github/mb706/mlrintermbo/branch/master/graphs/badge.svg)](https://codecov.io/github/mb706/mlrintermbo)

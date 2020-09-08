@@ -20,8 +20,8 @@ warnings_are_errors: true
 r_check_args: "--as-cran --run-donttest"
 
 r_github_packages:
-  - jimhester/lintr
-  - r-lib/covr
+  - mlr-org/mlr3learners
+  - mlr-org/mlr3misc
 
 before_install:
   # we want to see libpaths and installed packages from cache
@@ -32,68 +32,45 @@ before_script:
   - rm inst/doc/*.* || true
   - Rscript -e 'if (!require("roxygen2")) install.packages("roxygen2")'
   - Rscript -e 'if (!require("pkgdown")) install.packages("pkgdown")'
-  - Rscript -e 'if (!require("remotes")) install.packages("remotes")'
   - Rscript -e 'roxygen2::roxygenise()'
 
 after_failure:
   - ./travis-tool.sh dump_logs
 
-stages:
-  - install
-  - test
-  - covr
-  - name: document
-    if: branch = master AND type IN (push, api, cron)
-
-jobs:
-  include:
-    - stage: install
-      env: github-mlr
-      script:
-          # github mlr & tools
-        - Rscript -e 'remotes::install_github("mlr-org/mlr3learners")'
-        - Rscript -e 'remotes::install_github("mlr-org/mlr3misc")'
-        - echo 'Filled the cache with installed R packages.'
-        - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
-    - stage: test
-      env: github-mlr
-      script:
-        - R CMD build .
-        - travis_wait 100 R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
-        - grep -q -R "WARNING" "mlrintermbo.Rcheck/00check.log" ; [ $? -ne 0 ]
-    - stage: covr
-      env: github-mlr
-      script:
-        - Rscript -e 'remotes::install_github("mlr-org/mlr3learners")'
-        - Rscript -e 'remotes::install_github("mlr-org/mlr3misc")'
-        - travis_wait 100 Rscript -e 'library(BBmisc);covr::codecov(quiet=FALSE)'
-      before_deploy:
-        - R CMD build .
-        - R CMD INSTALL mlrintermbo*.tar.gz
-        - Rscript -e 'pkgdown::build_site(); roxygen2::roxygenise(); tools::buildVignettes(dir = ".");'
-        - mv vignettes/*.html inst/doc
-      deploy:
-        provider: pages
-        skip-cleanup: true
-        github-token: $GITHUB_TOKEN
-        local-dir: docs
-        on:
-          branch: master
-      after_deploy:
-        - git checkout master  # otherwise we're in detached head
-        - "export TRAVIS_COMMIT_MSG=\"$(git log --format=%B --no-merges -n 1)\""
-        - git config user.name Travis
-        - git config user.email '<>'
-        - git config credential.helper "store --file=.git/credentials"
-        - echo "https://${GITHUB_TOKEN}:@github.com" >> .git/credentials
-        - git config push.default matching
-        - |
-          git difftool -yx "diff -qI '20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\\\|environment. 0x\\\\|time. [0-9.]\\\\+'" | \
-          grep 'and inst/doc' | sed -e 's|.*and inst/doc|inst/doc|' -e 's/ differ$//' | xargs git add
-        - git add --force man/*
-        - git add DESCRIPTION NAMESPACE
-        - git commit -m "update auto-generated documentation [ci skip]" || true
-        - git push
+script:
+  # github mlr & tools
+  - echo 'Filled the cache with installed R packages.'
+  - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
+  - R CMD build .
+  - R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
+  - grep -q -R "WARNING" "mlrintermbo.Rcheck/00check.log" ; [ $? -ne 0 ]
+  - Rscript -e 'library(BBmisc);covr::codecov(quiet=FALSE)'
+before_deploy:
+  - R CMD INSTALL mlrintermbo*.tar.gz
+  - Rscript -e 'pkgdown::build_site(); roxygen2::roxygenise(); tools::buildVignettes(dir = ".");'
+  - mv vignettes/*.html inst/doc
+deploy:
+  provider: pages
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN
+  local-dir: docs
+  on:
+    branch: master
+after_deploy:
+  - git checkout master  # otherwise we're in detached head
+  - "export TRAVIS_COMMIT_MSG=\"$(git log --format=%B --no-merges -n 1)\""
+  - git config user.name Travis
+  - git config user.email '<>'
+  - git config credential.helper "store --file=.git/credentials"
+  - echo "https://${GITHUB_TOKEN}:@github.com" >> .git/credentials
+  - git config push.default matching
+  - |
+    git difftool -yx "diff -qI '20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]\\\\|environment. 0x\\\\|time. [0-9.]\\\\+'" | \
+    grep 'and inst/doc' | sed -e 's|.*and inst/doc|inst/doc|' -e 's/ differ$//' | xargs git add
+  - git add --force man/*
+  - git add DESCRIPTION NAMESPACE
+  - git commit -m "update auto-generated documentation [ci skip]" || true
+  - git push
       
 on_success: change
 on_failure: always
