@@ -107,7 +107,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
 assignResult <- function(instance) {
   best <- encall(self$r.session, expr = {
-    resobj <- mlrMBO::finalizeSMBO(opt.state)
+    resobj <- mlrMBO::finalizeSMBO(persistent$opt.state)
     if (!is.null(resobj$pareto.inds)) resobj$pareto.inds else resobj$best.ind
   })
   xdt <- instance$archive$data()[best, instance$search_space$ids(), with = FALSE]
