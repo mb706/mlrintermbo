@@ -10,6 +10,7 @@ test_that("makeMlr3Surrogate", {
     values <- list(surrogate.learner = s, infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2)
     values$infill.opt <- "focussearch"  # TODO: only here because of https://github.com/mlr-org/paradox/issues/265
     tuner$param_set$values <- values
+    set.seed(1)
     tuner$optimize(ti)
   }
 

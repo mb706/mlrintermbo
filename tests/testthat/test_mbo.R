@@ -9,7 +9,7 @@ test_that("mbo default", {
   archivenames <- colnames(ti$archive$data())
   archivenames <- c(archivenames, "propose.time", "errors.model", "crit.vals")
 
-
+  set.seed(1)
   ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
 
   tuner <- TunerInterMBO$new()
