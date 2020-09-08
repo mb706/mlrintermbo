@@ -30,6 +30,7 @@ makeCapsuledLearner <- function(encing) {
 
 
 # used from within background R session
+#' @exportS3Method mlr::trainLearner CapsuledMlr3Learner
 trainLearner.CapsuledMlr3Learner <- function(.learner, .task, .subset, .weights = NULL, ...) {
   data <- mlr::getTaskData(.task, .subset)
   data.task <- mlr3::TaskRegr$new(mlr::getTaskId(.task), data, mlr::getTaskTargetNames(.task))
@@ -39,6 +40,7 @@ trainLearner.CapsuledMlr3Learner <- function(.learner, .task, .subset, .weights 
 }
 
 # used from within background R session
+#' @exportS3Method mlr::predictLearner CapsuledMlr3Learner
 predictLearner.CapsuledMlr3Learner <- function(.learner, .model, .newdata, ...) {
   pred <- .model$learner.model$predict_newdata(.newdata)
   if (.learner$predict.type == "se") {
