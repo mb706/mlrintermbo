@@ -11,7 +11,10 @@ test_that("mbo with autotuner", {
     x
   }
 
-  at <- AutoTuner$new(ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11), tnr("intermbo"))
+  surr <- mlr3::LearnerRegrFeatureless$new()
+  surr$predict_type = "se"
+
+  at <- AutoTuner$new(ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11), tnr("intermbo", surrogate.learner = surr))
 
   rres <- mlr3::resample(tsk("pima"), at, rsmp("cv", folds = 5))
 
@@ -20,6 +23,10 @@ test_that("mbo with autotuner", {
 })
 
 test_that("fuzzing intermbo", {
+
+  surr <- mlr3::LearnerRegrFeatureless$new()
+  surr$predict_type = "se"
+
 
   tups <- tnr("intermbo")$param_set$clone(deep = TRUE)
   psnew <- ParamSet$new(discard(tups$params, function(x) "ParamUty" %in% class(x)))
@@ -79,11 +86,19 @@ test_that("fuzzing intermbo", {
 
   for (setting in generate_design_random(psnew, 10)$transpose()) {
 
-    ##> Multi-point proposal using constant liar needs the infill criterion 'ei' or 'aei', but you used '___'!
-    if (setting$multipoint.method == "cl" && !setting$infill.crit %in% c("EI", "AEI", "CB")) next
+    repeat {
+      ##> Multi-point proposal using constant liar needs the infill criterion 'ei' or 'aei', but you used '___'!
+      if (setting$multipoint.method == "cl" && !setting$infill.crit %in% c("EI", "AEI", "CB")) next
 
-    ##> for multipoint.method 'cb', infill.crit must be 'CB'.
-    if (setting$multipoint.method == "cb" && setting$infill.crit != "CB") next
+      ##> for multipoint.method 'cb', infill.crit must be 'CB'.
+      if (setting$multipoint.method == "cb" && setting$infill.crit != "CB") next
+
+      # this only works with original learner
+      if (setting$infill.crit == "AEI" && isTRUE(setting$infill.crit.aei.use.nugget)) next
+
+      break
+    }
+    setting$surrogate.learner <- surr
 
     ti <- TuningInstanceSingleCrit$new(tsk("pima"), ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 3))
     tuner$param_set$values <- setting

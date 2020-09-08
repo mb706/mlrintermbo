@@ -23,13 +23,15 @@ test_that("mbo different settings", {
   archivenames <- c("cp", "minsplit", "classif.auc", "resample_result", "timestamp", "batch_nr", "x_domain", "propose.time", "errors.model")
 
   ll <- lrn("classif.rpart", predict_type = "prob")
-
-  eval_mbo <- function(params, multimsr = FALSE, n.objectives = 1) {
+  surr <- mlr3::LearnerRegrFeatureless$new()
+  surr$predict_type = "se"
+  eval_mbo <- function(params, multimsr = FALSE, n.objectives = 1, surrogate = surr) {
     ti <- (if (n.objectives == 1) TuningInstanceSingleCrit else TuningInstanceMultiCrit)$new(tsk("pima"),
       ll, rsmp("cv"), (if (n.objectives == 1) msr else msrs)(c("classif.auc", if (multimsr) "classif.tpr")),
       ps, trm("evals", n_evals = 11))
     tuner <- TunerInterMBO$new(n.objectives)
     tuner$param_set$values <- params
+    tuner$param_set$values$surrogate.learner <- surrogate
     tuner$optimize(ti)
     ti
   }
@@ -117,8 +119,9 @@ test_that("mbo different settings", {
   expect_data_table(ti$archive$data(), nrows = 11)
   expect_equal(is.na(ti$archive$data()$propose.time), rep(c(TRUE, FALSE), c(8, 3)))
 
+  set.seed(1)
   # need to explicitly turn on nugget in kriging model
-  ti <- eval_mbo(list(infill.crit = "AEI", infill.crit.aei.use.nugget = TRUE))
+  ti <- eval_mbo(list(infill.crit = "AEI", infill.crit.aei.use.nugget = TRUE), surrogate = NULL)
   expect_names(names(ti$archive$data()), permutation.of = c(archivenames, "crit.vals"))
   expect_data_table(ti$archive$data(), nrows = 11)
   expect_equal(is.na(ti$archive$data()$propose.time), rep(c(TRUE, FALSE), c(8, 3)))
