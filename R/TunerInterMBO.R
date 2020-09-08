@@ -12,6 +12,28 @@
 #'
 #' @include paramset.R
 #' @include optimize.R
+#' @example
+#' library("paradox")
+#' library("bbotk")
+#'
+#' # silly example function: minimize x^2 for -1 < x < 1
+#' domain <- ParamSet$new(list(ParamDbl$new("x", lower = -1, upper = 1)))
+#' codomain <- ParamSet$new(list(ParamDbl$new("y", tags = "minimize")))
+#' objective <- ObjectiveRFun$new(function(xs) list(y = xs$x^2), domain, codomain)
+#'
+#' # initialize instance
+#' instance <- OptimInstanceSingleCrit$new(objective, domain, trm("evals", n_evals = 6))
+#'
+#' # use intermbo optimizer
+#' optser <- opt("intermbo")
+#'
+#' # optimizer has hyperparameters from mlrMBO
+#' optser$param_set$values$final.method <- "best.predicted"
+#'
+#' # optimization happens here.
+#' optser$optimize(instance)
+#'
+#' instance$result
 #' @export
 OptimizerInterMBO <- R6Class("OptimizerInterMBO",
   inherit = bbotk::Optimizer,
