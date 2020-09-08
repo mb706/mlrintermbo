@@ -1,5 +1,4 @@
-
-context("TunerInterMBO")
+context("manual tests")
 
 test_that("mbo default", {
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))

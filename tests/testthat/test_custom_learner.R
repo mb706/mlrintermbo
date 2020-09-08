@@ -1,4 +1,3 @@
-
 context("custom_learner")
 
 test_that("makeMlr3Surrogate", {

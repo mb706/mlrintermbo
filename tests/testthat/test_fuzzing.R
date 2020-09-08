@@ -1,5 +1,4 @@
-
-context("TunerInterMBO")
+context("fuzzing")
 
 test_that("mbo with autotuner", {
 
@@ -84,9 +83,10 @@ test_that("fuzzing intermbo", {
 
   tuner <- TunerInterMBO$new(on.surrogate.error = "stop")
 
-  for (setting in generate_design_random(psnew, 10)$transpose()) {
+  for (setting in seq_len(20)) {
 
     repeat {
+      setting = generate_design_random(psnew, 1)$transpose()[[1]]
       ##> Multi-point proposal using constant liar needs the infill criterion 'ei' or 'aei', but you used '___'!
       if (setting$multipoint.method == "cl" && !setting$infill.crit %in% c("EI", "AEI", "CB")) next
 
