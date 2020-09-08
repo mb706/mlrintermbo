@@ -1,5 +1,5 @@
 Package: mlrintermbo
-Title: An 'mlrMBO'-'mlr3'-Interface
+Title: An 'mlrMBO' 'mlr3' Interface
 Description: mlr3 doing MBO through mlrMBO.
 Authors@R: c(
     person("Martin", "Binder", email = "developer.mb706@doublecaret.com", role = c("aut", "cre")))

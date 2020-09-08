@@ -19,10 +19,6 @@ env:
 warnings_are_errors: true
 r_check_args: "--as-cran --run-donttest"
 
-r_github_packages:
-  - mlr-org/mlr3learners
-  - mlr-org/mlr3misc
-
 before_install:
   # we want to see libpaths and installed packages from cache
   - Rscript -e 'message("LIBPATHS:"); .libPaths()'
@@ -32,7 +28,7 @@ before_script:
   - rm inst/doc/*.* || true
   - Rscript -e 'if (!require("roxygen2")) install.packages("roxygen2")'
   - Rscript -e 'if (!require("pkgdown")) install.packages("pkgdown")'
-  - Rscript -e 'if (!require("covr)) install.packages("covr")'
+  - Rscript -e 'if (!require("covr")) install.packages("covr")'
   - Rscript -e 'roxygen2::roxygenise()'
 
 after_failure:
@@ -40,7 +36,6 @@ after_failure:
 
 script:
   # github mlr & tools
-  - echo 'Filled the cache with installed R packages.'
   - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
   - R CMD build .
   - travis_wait 100 R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
