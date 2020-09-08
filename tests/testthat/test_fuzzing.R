@@ -64,29 +64,9 @@ test_that("fuzzing intermbo", {
   tuner <- TunerInterMBO$new(on.surrogate.error = "quiet")
 
   set.seed(1)
-  for (setting in generate_design_random(psnew, 10)$transpose()) {
-
-    ##> Multi-point proposal using constant liar needs the infill criterion 'ei' or 'aei', but you used '___'!
-    if (setting$multipoint.method == "cl" && !setting$infill.crit %in% c("EI", "AEI", "CB")) next
-
-    ##> for multipoint.method 'cb', infill.crit must be 'CB'.
-    if (setting$multipoint.method == "cb" && setting$infill.crit != "CB") next
-
-    ti <- TuningInstanceSingleCrit$new(tsk("pima"), ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 3))
-    tuner$param_set$values <- setting
-    tuner$optimize(ti)
-  }
-
-
-  psnew$params$initial.design.size$lower = 10
-  psnew$params$initial.design.size$upper = 12
-
-  tuner <- TunerInterMBO$new(on.surrogate.error = "stop")
-
   for (setting in seq_len(20)) {
-
     repeat {
-      setting = generate_design_random(psnew, 1)$transpose()[[1]]
+      setting <- generate_design_random(psnew, 1)$transpose()[[1]]
       ##> Multi-point proposal using constant liar needs the infill criterion 'ei' or 'aei', but you used '___'!
       if (setting$multipoint.method == "cl" && !setting$infill.crit %in% c("EI", "AEI", "CB")) next
 
@@ -102,7 +82,35 @@ test_that("fuzzing intermbo", {
 
     ti <- TuningInstanceSingleCrit$new(tsk("pima"), ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 3))
     tuner$param_set$values <- setting
-    tuner$optimize(ti)
+    suppressWarnings(tuner$optimize(ti))
+  }
+
+
+  psnew$params$initial.design.size$lower = 10
+  psnew$params$initial.design.size$upper = 12
+
+  tuner <- TunerInterMBO$new(on.surrogate.error = "stop")
+  set.seed(2)
+  for (setting in seq_len(20)) {
+
+    repeat {
+      setting <- generate_design_random(psnew, 1)$transpose()[[1]]
+      ##> Multi-point proposal using constant liar needs the infill criterion 'ei' or 'aei', but you used '___'!
+      if (setting$multipoint.method == "cl" && !setting$infill.crit %in% c("EI", "AEI", "CB")) next
+
+      ##> for multipoint.method 'cb', infill.crit must be 'CB'.
+      if (setting$multipoint.method == "cb" && setting$infill.crit != "CB") next
+
+      # this only works with original learner
+      if (setting$infill.crit == "AEI" && isTRUE(setting$infill.crit.aei.use.nugget)) next
+
+      break
+    }
+    setting$surrogate.learner <- surr
+
+    ti <- TuningInstanceSingleCrit$new(tsk("pima"), ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 3))
+    tuner$param_set$values <- setting
+    suppressWarnings(tuner$optimize(ti))
   }
 
 })

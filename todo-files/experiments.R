@@ -12,6 +12,7 @@ options(error=recover)
 Sys.setenv(NOT_CRAN = "true")
 testthat::test_package("mlrintermbo")
 
+devtools::load_all()
 
 ti <- TuningInstanceMultiCrit$new(tsk("german_credit"), lrn("classif.rpart"), rsmp("cv"), msrs(c("classif.acc", "classif.tpr")), paradox::ParamSet$new(list(paradox::ParamDbl$new("cp", 0, 1))), trm("evals", n_evals = 5))
 
@@ -19,7 +20,7 @@ tun <- tnr("intermbo", n.objectives = 2, infill.crit = "DIB")
 
 tun$optimize(ti)
 
-testthat::test()
+devtools::test(filter = "fuzzing")
 
 # ------------------
 
