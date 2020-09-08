@@ -1,7 +1,7 @@
 context("fuzzing")
 
 test_that("mbo with autotuner", {
-
+  skip_on_cran()
   ll <- lrn("classif.rpart", predict_type = "prob")
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamDbl$new("minsplit", lower = 1, upper = 20), ParamDbl$new("minbucket", lower = 1, upper = 20)))
   ps$trafo <- function(x, param_set) {
@@ -22,7 +22,7 @@ test_that("mbo with autotuner", {
 })
 
 test_that("fuzzing intermbo", {
-
+  skip_on_cran()
   surr <- mlr3::LearnerRegrFeatureless$new()
   surr$predict_type = "se"
 

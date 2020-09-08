@@ -1,6 +1,7 @@
 context("custom_learner")
 
 test_that("makeMlr3Surrogate", {
+  skip_on_cran()
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 
   testSurrogate <- function(s) {
