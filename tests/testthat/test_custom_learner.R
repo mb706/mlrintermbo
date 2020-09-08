@@ -10,9 +10,9 @@ test_that("makeMlr3Surrogate", {
   }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
 
 
+  tuner <- OptimizerInterMBO$new()
   testSurrogate <- function(s) {
     ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 11))
-    tuner <- OptimizerInterMBO$new()
     values <- list(surrogate.learner = s, infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2)
     values$infill.opt <- "focussearch"  # TODO: only here because of https://github.com/mlr-org/paradox/issues/265
     tuner$param_set$values <- values

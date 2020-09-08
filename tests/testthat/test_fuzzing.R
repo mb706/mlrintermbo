@@ -93,7 +93,7 @@ test_that("fuzzing intermbo", {
   psnew$params$initial.design.size$lower = 10
   psnew$params$initial.design.size$upper = 12
 
-  tuner <- TunerInterMBO$new(on.surrogate.error = "stop")
+  tuner <- OptimizerInterMBO$new(on.surrogate.error = "stop")
   set.seed(2)
   for (setting in seq_len(20)) {
 

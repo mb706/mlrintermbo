@@ -34,21 +34,24 @@ test_that("mbo different settings", {
     list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2, classif.tpr = - ((xs$cp - .2) ^ 2 + (assertInt(xs$minsplit) - 7) ^ 2))
   }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"), ParamDbl$new("classif.tpr", tags = "maximize"))))
 
-  surr <- mlr3::LearnerRegrFeatureless$new()
+  surr <- LearnerRegrFeatureless$new()
   surr$predict_type = "se"
 
   ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 1))
   opt("random_search")$optimize(ti)
   archivenames <- colnames(ti$archive$data())
   archivenames <- c(archivenames, "propose.time", "errors.model")
-
+  tuner.sc <- OptimizerInterMBO$new(1)
+  tuner.mc <- OptimizerInterMBO$new(2)
   eval_mbo <- function(params, multimsr = FALSE, n.objectives = 1, surrogate = surr) {
     if (n.objectives == 1) {
       ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 11))
+      tuner <- tuner.sc
     } else {
       ti <- OptimInstanceMultiCrit$new(objective.mc, ps, trm("evals", n_evals = 11))
+      tuner <- tuner.mc
     }
-    tuner <- OptimizerInterMBO$new(n.objectives)
+
     params$surrogate.learner <- surrogate
     if (is.null(params$infill.opt)) params$infill.opt <- "focussearch"  # TODO: only here because of https://github.com/mlr-org/paradox/issues/265
     tuner$param_set$values <- params
