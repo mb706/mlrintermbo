@@ -46,7 +46,7 @@ after_success:
 before_deploy:
   - R CMD INSTALL mlrintermbo*.tar.gz
   - Rscript -e 'pkgdown::build_site(); roxygen2::roxygenise(); tools::buildVignettes(dir = ".");'
-  - mv vignettes/*.html inst/doc
+  - mv vignettes/*.html inst/doc || true
 deploy:
   provider: pages
   skip-cleanup: true
