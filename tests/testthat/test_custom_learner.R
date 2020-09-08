@@ -6,7 +6,8 @@ test_that("makeMlr3Surrogate", {
   testSurrogate <- function(s) {
     ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("cv"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
     tuner <- TunerInterMBO$new()
-    tuner$param_set$values$surrogate.learner <- s
+    tuner$param_set$values <- list(surrogate.learner = s, infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2)
+    tuner$param_set$values$infill.opt <- "focussearch"  # TODO: only here because of https://github.com/mlr-org/paradox/issues/265
     tuner$optimize(ti)
   }
 
