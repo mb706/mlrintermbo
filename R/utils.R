@@ -34,19 +34,19 @@ It is strongly recommended that you restart this R session.")
 #   z <- x + y
 #   exp(z)
 # }, x, y)
-encall <- function(session, expr, ..., .detach.env = topenv(parent.frame())) {
+encall <- function(session, expr, ...) {
   args <- structure(list(...), names = map_chr(substitute(list(...)), as.character)[-1])
 
   # If the 'args' contain any functions, we detachEnv() them
-  # TODO: this may be unnecessary since we have `registerEncallFunction()` now.
   args <- map(args, function(x) {
-    if (is.function(x) && identical(topenv(environment(x)), .detach.env)) {
-      detachEnv(environment(x), basis = .GlobalEnv)
+    if (is.function(x)) {
+      detachEnv(environment(x), basis = topenv(parent.frame()))
+    } else {
+      x
     }
-    x
   })
   funexp <- call("function", as.pairlist(map(args, function(x) substitute())), substitute(expr))
-  fun <- eval(funexp, envir = .GlobalEnv)
+  fun <- eval(funexp, envir = topenv(parent.frame()))
 
   if (session$get_state() == "busy") {
     # The following we do because initSession() loads mlr, which may take a while, so it is run asynchronously.
@@ -60,9 +60,9 @@ encall <- function(session, expr, ..., .detach.env = topenv(parent.frame())) {
     session$read()  # need this to reset session's internal readiness indicator after startup.
   }
 
-  output <- session$run_with_output(args = list(fun = fun, args = args, seed = runif(1) * 2^31), function(fun, args, seed) {
+  output <- session$run_with_output(args = list(fun = fun, args = args, seed = stats::runif(1) * 2^31), function(fun, args, seed) {
     set.seed(seed)
-    captureSpecials(do.call(fun, args))
+    mlrintermbo::captureSpecials(do.call(fun, args))
   })
 
   output.text <- output$stdout
@@ -89,43 +89,47 @@ encall <- function(session, expr, ..., .detach.env = topenv(parent.frame())) {
   output$result
 }
 
-encall.function.registry <- list()
-registerEncallFunction <- function(f) {
-  encall.function.registry <<- c(encall.function.registry, structure(list(detachEnv(f, basis = .GlobalEnv)), names = as.character(substitute(f))))
-}
-
 # make a callr-session ready for `encall`
 initSession <- function(session) {
-  session$call(args = list(encall.function.registry), function(encall.function.registry) {
+  session$call(function() {
     options(warn = 1)
-    assign(envir = .GlobalEnv, "captureSpecials", function(expr) {
-      sink(stdout(), type = "message")
-      # callr returns a call stack on error, which would load packages in the original R session, which we try to avoid.
-      tryCatch(
-        withCallingHandlers(
-          expr,
-          error = function(e) {
-            suppressWarnings(sink())
-            cat("ERROR TRACEBACK:\n")
-            traceback(4)
-            # do some sprintf'ing because we don't want to have a string in the code that matches '<<!....!>>'.
-            cat(sprintf("<<!%s!>>%s<</!%s!>>\n", "ERROR", conditionMessage(e), "ERROR"))
-          },
-          warning = function(e) {
-            suppressWarnings(sink())
-            cat(sprintf("<<!%s!>>%s<</!%s!>>\n", "WARNING", conditionMessage(e), "WARNING"))
-            invokeRestart("muffleWarning")
-          }
-        ),
-        error = function(e) stop(e)  # re-throw
-      )
-    })
-
-    for (n in names(encall.function.registry)) {
-      assign(n, envir = .GlobalEnv, encall.function.registry[[n]])
-    }
+    suppressMessages(loadNamespace("mlrintermbo"))
     suppressMessages(attachNamespace("mlr"))  # this is necessary because mlr does things in .onAttach that should be done in .onLoad
     NULL
   })
   invisible(session)
+}
+
+#' @title Capture Warnings and Errors
+#'
+#' @description
+#' Converts warnings and errors into in-band information.
+#' This function is for internal use and is used within
+#' the attached R session in the background.
+#'
+#' @param expr expression to evaluate.
+#'
+#' @keywords internal
+#' @export
+captureSpecials <- function(expr) {
+  sink(stdout(), type = "message")
+  # callr returns a call stack on error, which would load packages in the original R session, which we try to avoid.
+  tryCatch(
+    withCallingHandlers(
+      expr,
+      error = function(e) {
+        suppressWarnings(sink())
+        cat("ERROR TRACEBACK:\n")
+        traceback(4)
+        # do some sprintf'ing because we don't want to have a string in the code that matches '<<!....!>>'.
+        cat(sprintf("<<!%s!>>%s<</!%s!>>\n", "ERROR", conditionMessage(e), "ERROR"))
+      },
+      warning = function(e) {
+        suppressWarnings(sink())
+        cat(sprintf("<<!%s!>>%s<</!%s!>>\n", "WARNING", conditionMessage(e), "WARNING"))
+        invokeRestart("muffleWarning")
+      }
+    ),
+    error = stop  # re-throw
+  )
 }

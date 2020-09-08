@@ -22,7 +22,6 @@ ParamHelpersParamSet <- function(session, paramset) {
   })
 }
 
-
 # translate a paradox::Condition object into an expression
 # condition: the Condition object
 # on: the variable the condition depends on

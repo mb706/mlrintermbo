@@ -1,6 +1,7 @@
 #' @include utils.R
 
 # create an mlr learner that encapsulates the mlr3-learner encing
+# used from within background R session
 makeCapsuledLearner <- function(encing) {
   checkmate::assertClass(encing, "Learner")
   checkmate::assertClass(encing, "R6")
@@ -26,8 +27,9 @@ makeCapsuledLearner <- function(encing) {
   lr$fix.factors.prediction = FALSE
   mlr::setPredictType(lr, encing$predict_type)
 }
-registerEncallFunction(makeCapsuledLearner)
 
+
+# used from within background R session
 trainLearner.CapsuledMlr3Learner <- function(.learner, .task, .subset, .weights = NULL, ...) {
   data <- mlr::getTaskData(.task, .subset)
   data.task <- mlr3::TaskRegr$new(mlr::getTaskId(.task), data, mlr::getTaskTargetNames(.task))
@@ -35,8 +37,8 @@ trainLearner.CapsuledMlr3Learner <- function(.learner, .task, .subset, .weights 
   lclone$predict_type <- mlr::getLearnerPredictType(.learner)
   lclone$train(data.task)
 }
-registerEncallFunction(trainLearner.CapsuledMlr3Learner)
 
+# used from within background R session
 predictLearner.CapsuledMlr3Learner <- function(.learner, .model, .newdata, ...) {
   pred <- .model$learner.model$predict_newdata(.newdata)
   if (.learner$predict.type == "se") {
@@ -45,4 +47,3 @@ predictLearner.CapsuledMlr3Learner <- function(.learner, .model, .newdata, ...) 
     pred$response  # return numeric vector
   }
 }
-registerEncallFunction(predictLearner.CapsuledMlr3Learner)

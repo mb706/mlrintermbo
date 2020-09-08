@@ -2,6 +2,7 @@
 
 export(OptimizerInterMBO)
 export(TunerInterMBO)
+export(captureSpecials)
 export(makeMlr3Surrogate)
 import(checkmate)
 import(data.table)

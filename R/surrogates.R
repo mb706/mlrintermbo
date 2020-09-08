@@ -1,8 +1,21 @@
-
 #' @title Create Surrogate Learner
 #'
-#' @description Creates the default mlrMBO surrogate learner as an [`mlr3::Learner`].
+#' @description
+#' Creates the default mlrMBO surrogate learners as an [`mlr3::Learner`].
 #'
+#' This imitates the behaviour of mlrCPO when no `learner` argument is given to `mbo()` / `initSMBO()`.
+#'
+#' @param is.numeric (`logical(1)`)\cr
+#'   Whether only numeric parameters are present. If so, a `LearnerRegrKM` (\pkg{DiceKriging} package)
+#'   is constructed. Otherwise a `LearnerRegrRanger` (random forest from the \pkg{ranger} package) is constructed.
+#'   Default is `TRUE`.
+#' @param is.noisy (`logical(1)`)\cr
+#'   Whether to use nugget estimation. Only considered when `is.numeric` is `TRUE`. Default is `TRUE`.
+#' @param has.dependencies (`logical(1)`)\cr
+#'   Whether to anticipate missing values in the surrogate model design. This adds out-of-range imputation to the model.
+#'   If more elaborate imputation is desired, it may be desirable to set this to `FALSE` and instead perform custom imputation
+#'   using \pkg{mlr3pipelines}.
+#'   Default is `!numeric`.
 #' @export
 makeMlr3Surrogate <- function(is.numeric = TRUE, is.noisy = TRUE, has.dependencies = !is.numeric) {
   if (is.numeric) {

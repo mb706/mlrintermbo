@@ -2,6 +2,9 @@
 #' @include ParamHelpersParamSet.R
 #' @include CapsuledMlr3Learner.R
 
+
+persistent <- new.env(parent = baseenv())  # persistent storage for opt.state and proposition in background R session
+
 optimize <- function(instance) {
   warnIfPHLoaded()
 
@@ -59,16 +62,16 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
     # that's right, we save the opt.state inside the background R session. It contains lots of stuff, none of which we need
     # in the main R session.
-    opt.state <<- mlrMBO::initSMBO(control = control, par.set = par.set, minimize = minimize, design = design, learner = if (!is.null(learner)) makeCapsuledLearner(learner))
+    persistent$opt.state <- mlrMBO::initSMBO(control = control, par.set = par.set, minimize = minimize, design = design, learner = if (!is.null(learner)) makeCapsuledLearner(learner))
 
     proposition <- NULL
     if (still.needs.proposition) {
-      proposition <- mlrMBO::proposePoints(opt.state)
-      proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(opt.state$opt.problem$fun), proposition$prop.points)
+      proposition <- mlrMBO::proposePoints(persistent$opt.state)
+      proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(persistent$opt.state$opt.problem$fun), proposition$prop.points)
     }
 
     # also save the design inside the background R session, this saves us from having to send data over the process gap
-    design <<- proposition$prop.points
+    persistent$design <- proposition$prop.points
 
     proposition
   })
@@ -93,10 +96,10 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
     proposition <- encall(self$r.session, perfs, expr = {
       # using the saved design & opt.state here; save the new opt.state righ taway
-      opt.state <<- mlrMBO::updateSMBO(opt.state = opt.state, x = design, y = as.list(as.data.frame(t(perfs))))
-      proposition <- mlrMBO::proposePoints(opt.state)
-      proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(opt.state$opt.problem$fun), proposition$prop.points)
-      design <<- proposition$prop.points  # save the design again
+      persistent$opt.state <- mlrMBO::updateSMBO(opt.state = persistent$opt.state, x = persistent$design, y = as.list(as.data.frame(t(perfs))))
+      proposition <- mlrMBO::proposePoints(persistent$opt.state)
+      proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(persistent$opt.state$opt.problem$fun), proposition$prop.points)
+      persistent$design <- proposition$prop.points  # save the design again
       proposition
     })
   }
@@ -118,6 +121,7 @@ assignResult <- function(instance) {
 }
 
 # create mlrMBO control object from parameter values
+# used from within background R session
 constructMBOControl <- function(vals, n.objectives, on.surrogate.error) {
   getVals <- function(delete.prefix, vn = "", vn.is.prefix = TRUE) {
     checkmate::assertCharacter(vn)
@@ -179,10 +183,10 @@ constructMBOControl <- function(vals, n.objectives, on.surrogate.error) {
   # need to overwrite the default isters '10'
   mlrMBO::setMBOControlTermination(control, iters = .Machine$integer.max)
 }
-registerEncallFunction(constructMBOControl)
 
 # call ParamHelpers::repairPoint on each data frame row
+# used from within background R session
 repairParamDF <- function(par.set, df) {
   do.call(rbind.data.frame, lapply(ParamHelpers::dfRowsToList(df, par.set), ParamHelpers::repairPoint, par.set = par.set))
 }
-registerEncallFunction(repairParamDF)
+
