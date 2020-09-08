@@ -20,7 +20,7 @@ tun <- tnr("intermbo", n.objectives = 2, infill.crit = "DIB")
 
 tun$optimize(ti)
 
-devtools::test()
+profvis::profvis(devtools::test())
 devtools::test(filter = "fuzzing")
 devtools::test(filter = "learner")
 devtools::test(filter = "mbo")

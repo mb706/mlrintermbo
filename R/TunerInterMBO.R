@@ -44,7 +44,7 @@ OptimizerInterMBO <- R6Class("OptimizerInterMBO",
     initialize = function(n.objectives = 1, on.surrogate.error = "stop") {
       self$n.objectives <- assertCount(n.objectives, positive = TRUE)
       self$on.surrogate.error <- assertChoice(on.surrogate.error, c("stop", "warn", "quiet"))
-      self$r.session <- initSession(callr::r_session$new())
+      self$r.session <- initSession(callr::r_session$new(wait_timeout = 10000))
       warnIfPHLoaded()
       super$initialize(
         param_set = mboParamSet(n.objectives),
