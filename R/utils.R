@@ -15,9 +15,11 @@ detachEnv <- function(fun, keep = character(0), basis = topenv(parent.frame())) 
 
 warnIfPHLoaded <- function() {
   if (environmentName(environment(as.environment("package:base")$.__S3MethodsTable__.$print.ParamSet)) == "ParamHelpers") {
+    # nocov start
     warning("ParamHelpers package was loaded for some reason.
 Did you accidentally load something from ParamHelpers::, mlr::, or mlrMBO::?
 It is strongly recommended that you restart this R session.")
+    # nocov end
   }
 }
 
@@ -53,17 +55,19 @@ encall <- function(session, expr, ...) {
     # Therefore here we need to wait for the background process. We are being generous with timing, because it
     # *could* just take long, but it could also mean the session is hung for some reason so we message after a while.
     if (session$poll_process(10000) == "timeout") {  # message after 10 seconds
+      # nocov start
       message("mlrintermbo is waiting for background R session which appears to take longer for startup than anticipated. Maybe it is hanging?")
       while(session$poll_process(60000) == "timeout") message("... still waiting ...")
       message("mlrintermbo background R process startup finally done")
+      # nocov end
     }
     session$read()  # need this to reset session's internal readiness indicator after startup.
   }
 
-  output <- session$run_with_output(args = list(fun = fun, args = args, seed = stats::runif(1) * 2^31), function(fun, args, seed) {
+  output <- session$run_with_output(args = list(fun = fun, args = args, seed = stats::runif(1) * 2^31), function(fun, args, seed) {  # nocov start
     set.seed(seed)
     mlrintermbo::captureSpecials(do.call(fun, args))
-  })
+  })  # nocov end
 
   output.text <- output$stdout
   output.pieces <- gregexpr("<<!(WARNING|ERROR)!>>.*?<</!(WARNING|ERROR)!>>\n", output.text)[[1]]
@@ -84,19 +88,19 @@ encall <- function(session, expr, ...) {
 
   if (!is.null(output$error)) {
     # this should not be reached if there is an `<<!ERROR!>>` somewhere in the output.
-    stop(output$error$message)
+    stop(output$error$message)  # nocov
   }
   output$result
 }
 
 # make a callr-session ready for `encall`
 initSession <- function(session) {
-  session$call(function() {
+  session$call(function() {  # nocov start
     options(warn = 1)
     suppressMessages(loadNamespace("mlrintermbo"))
     suppressMessages(attachNamespace("mlr"))  # this is necessary because mlr does things in .onAttach that should be done in .onLoad
     NULL
-  })
+  })  # nocov end
   invisible(session)
 }
 
@@ -111,7 +115,7 @@ initSession <- function(session) {
 #'
 #' @keywords internal
 #' @export
-captureSpecials <- function(expr) {
+captureSpecials <- function(expr) {  # nocov start
   sink(stdout(), type = "message")
   # callr returns a call stack on error, which would load packages in the original R session, which we try to avoid.
   tryCatch(
@@ -132,4 +136,4 @@ captureSpecials <- function(expr) {
     ),
     error = stop  # re-throw
   )
-}
+}  # nocov end

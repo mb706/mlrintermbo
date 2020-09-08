@@ -56,7 +56,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
   design <- cbind(do.call(rbind.data.frame, instance$archive$data()$x_domain), design)
   minimize <- unname(map_lgl(instance$objective$codomain$tags, function(x) "minimize" %in% x))  # important to unname, mlrMBO fails otherwise
 
-  proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {
+  proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {  # nocov start
 
     control <- constructMBOControl(vals = vals, n.objectives = n.objectives, on.surrogate.error = on.surrogate.error)
 
@@ -74,7 +74,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
     persistent$design <- proposition$prop.points
 
     proposition
-  })
+  })  # nocov end
   if (is.null(proposition)) {
     # budget exhausted after initial design
     return(invisible(NULL))
@@ -94,22 +94,22 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
     }
     perfs <- as.data.frame(evals)[seq_len(n.objectives)]
 
-    proposition <- encall(self$r.session, perfs, expr = {
+    proposition <- encall(self$r.session, perfs, expr = {  # nocov start
       # using the saved design & opt.state here; save the new opt.state righ taway
       persistent$opt.state <- mlrMBO::updateSMBO(opt.state = persistent$opt.state, x = persistent$design, y = as.list(as.data.frame(t(perfs))))
       proposition <- mlrMBO::proposePoints(persistent$opt.state)
       proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(persistent$opt.state$opt.problem$fun), proposition$prop.points)
       persistent$design <- proposition$prop.points  # save the design again
       proposition
-    })
+    })  # nocov end
   }
 }
 
 assignResult <- function(instance) {
-  best <- encall(self$r.session, expr = {
+  best <- encall(self$r.session, expr = {  # nocov start
     resobj <- mlrMBO::finalizeSMBO(persistent$opt.state)
     if (!is.null(resobj$pareto.inds)) resobj$pareto.inds else resobj$best.ind
-  })
+  })  # nocov end
   xdt <- instance$archive$data()[best, instance$search_space$ids(), with = FALSE]
   ydt <- instance$archive$data()[best, instance$objective$codomain$ids(), with = FALSE]
   if (inherits(instance, "OptimInstanceMultiCrit")) {
@@ -122,7 +122,7 @@ assignResult <- function(instance) {
 
 # create mlrMBO control object from parameter values
 # used from within background R session
-constructMBOControl <- function(vals, n.objectives, on.surrogate.error) {
+constructMBOControl <- function(vals, n.objectives, on.surrogate.error) {  # nocov start
   getVals <- function(delete.prefix, vn = "", vn.is.prefix = TRUE) {
     checkmate::assertCharacter(vn)
     checkmate::assertString(delete.prefix)
@@ -182,11 +182,11 @@ constructMBOControl <- function(vals, n.objectives, on.surrogate.error) {
   }
   # need to overwrite the default isters '10'
   mlrMBO::setMBOControlTermination(control, iters = .Machine$integer.max)
-}
+}  # nocov end
 
 # call ParamHelpers::repairPoint on each data frame row
 # used from within background R session
-repairParamDF <- function(par.set, df) {
+repairParamDF <- function(par.set, df) {  # nocov start
   do.call(rbind.data.frame, lapply(ParamHelpers::dfRowsToList(df, par.set), ParamHelpers::repairPoint, par.set = par.set))
-}
+}  # nocov end
 
