@@ -14,7 +14,7 @@ tuner <- tnr("intermbo")
 optimizer <- opt("intermbo")
 ```
 
-The tuner / optimizer provide an *extensiv* `ParamSet` to configure the MBO method.
+The tuner / optimizer provide an *extensive* `ParamSet` to configure the MBO method.
 
 ## Installation
 
