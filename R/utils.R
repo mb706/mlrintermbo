@@ -100,20 +100,24 @@ initSession <- function(session) {
     options(warn = 1)
     assign(envir = .GlobalEnv, "captureSpecials", function(expr) {
       sink(stdout(), type = "message")
-      withCallingHandlers(
-        expr,
-        error = function(e) {
-          suppressWarnings(sink())
-          cat("ERROR TRACEBACK:\n")
-          traceback(4)
-          # do some sprintf'ing because we don't want to have a string in the code that matches '<<!....!>>'.
-          cat(sprintf("<<!%s!>>%s<</!%s!>>\n", "ERROR", conditionMessage(e), "ERROR"))
-        },
-        warning = function(e) {
-          suppressWarnings(sink())
-          cat(sprintf("<<!%s!>>%s<</!%s!>>\n", "WARNING", conditionMessage(e), "WARNING"))
-          invokeRestart("muffleWarning")
-        }
+      # callr returns a call stack on error, which would load packages in the original R session, which we try to avoid.
+      tryCatch(
+        withCallingHandlers(
+          expr,
+          error = function(e) {
+            suppressWarnings(sink())
+            cat("ERROR TRACEBACK:\n")
+            traceback(4)
+            # do some sprintf'ing because we don't want to have a string in the code that matches '<<!....!>>'.
+            cat(sprintf("<<!%s!>>%s<</!%s!>>\n", "ERROR", conditionMessage(e), "ERROR"))
+          },
+          warning = function(e) {
+            suppressWarnings(sink())
+            cat(sprintf("<<!%s!>>%s<</!%s!>>\n", "WARNING", conditionMessage(e), "WARNING"))
+            invokeRestart("muffleWarning")
+          }
+        ),
+        error = function(e) stop(e)  # re-throw
       )
     })
 
