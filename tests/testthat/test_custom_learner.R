@@ -2,11 +2,17 @@ context("custom_learner")
 
 test_that("makeMlr3Surrogate", {
   skip_on_cran()
+
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 
+  objective <- ObjectiveRFun$new(function(xs) {
+    list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2)
+  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
+
+
   testSurrogate <- function(s) {
-    ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
-    tuner <- TunerInterMBO$new()
+    ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 11))
+    tuner <- OptimizerInterMBO$new()
     values <- list(surrogate.learner = s, infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2)
     values$infill.opt <- "focussearch"  # TODO: only here because of https://github.com/mlr-org/paradox/issues/265
     tuner$param_set$values <- values
@@ -25,11 +31,12 @@ test_that("makeMlr3Surrogate", {
 
 test_that("custom surrogate", {
 
+  # we create a custom surrogate model that consists of a pipeline that replaces the measured performance value with a (cp - 0.2)^2 performance value
   custompo <- R6::R6Class("mypo", inherit = mlr3pipelines::PipeOpTaskPreproc,
     private = list(
       .train_task  = function(task) {
         target <- task$data(cols = task$target_names)
-        target[, `:=`(task$target_names, -(task$data(cols = "cp")[[1]] - 0.5) ^ 2)]
+        target[, `:=`(task$target_names, (task$data(cols = "cp")[[1]] - 0.2) ^ 2)]
         task$cbind(target)
       },
       predict_task = function(task) {
@@ -42,14 +49,16 @@ test_that("custom surrogate", {
 
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 
-  ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 20))
-  tuner <- TunerInterMBO$new()
+  objective <- ObjectiveRFun$new(function(xs) {
+    list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2)
+  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
+  ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 20))
+  tuner <- OptimizerInterMBO$new()
   tuner$param_set$values$surrogate.learner <- cus
   tuner$param_set$values$infill.crit <- "MeanResponse"
   tuner$param_set$values$final.method <- "last.proposed"
   tuner$optimize(ti)
 
-  expect_lte(abs(0.5 - ti$result_x_domain$cp), .01)
-
+  expect_equal(ti$result_x_domain$cp, 0.2, tolerance = 0.01)
 
 })

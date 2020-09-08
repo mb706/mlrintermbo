@@ -53,7 +53,6 @@ test_that("fuzzing intermbo", {
   psnew$params$initial.design.size$lower = 1
   psnew$params$initial.design.size$upper = 2
 
-  ll <- lrn("classif.rpart", predict_type = "prob")
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamDbl$new("minsplit", lower = 1, upper = 20), ParamDbl$new("minbucket", lower = 1, upper = 20)))
   ps$trafo <- function(x, param_set) {
     x$minsplit <- round(x$minsplit)
@@ -61,7 +60,12 @@ test_that("fuzzing intermbo", {
     x
   }
 
-  tuner <- TunerInterMBO$new(on.surrogate.error = "quiet")
+  objective <- ObjectiveRFun$new(function(xs) {
+    list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2 + (assertInt(xs$minbucket) - 10) ^ 2)
+  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
+
+
+  tuner <- OptimizerInterMBO$new(on.surrogate.error = "quiet")
 
   set.seed(1)
   for (setting in seq_len(20)) {
@@ -80,7 +84,7 @@ test_that("fuzzing intermbo", {
     }
     setting$surrogate.learner <- surr
 
-    ti <- TuningInstanceSingleCrit$new(tsk("pima"), ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 3))
+    ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 3))
     tuner$param_set$values <- setting
     suppressWarnings(tuner$optimize(ti))
   }
@@ -108,7 +112,7 @@ test_that("fuzzing intermbo", {
     }
     setting$surrogate.learner <- surr
 
-    ti <- TuningInstanceSingleCrit$new(tsk("pima"), ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 3))
+    ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 3))
     tuner$param_set$values <- setting
     suppressWarnings(tuner$optimize(ti))
   }

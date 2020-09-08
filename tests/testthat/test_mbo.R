@@ -26,20 +26,29 @@ test_that("mbo different settings", {
   set.seed(2)
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 
-  ll <- lrn("classif.rpart", predict_type = "prob")
+  objective <- ObjectiveRFun$new(function(xs) {
+    list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2)
+  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
+
+  objective.mc <- ObjectiveRFun$new(function(xs) {
+    list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2, classif.tpr = - ((xs$cp - .2) ^ 2 + (assertInt(xs$minsplit) - 7) ^ 2))
+  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"), ParamDbl$new("classif.tpr", tags = "maximize"))))
+
   surr <- mlr3::LearnerRegrFeatureless$new()
   surr$predict_type = "se"
 
-  ti <- TuningInstanceSingleCrit$new(tsk("pima"), ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 1))
-  tnr("random_search")$optimize(ti)
+  ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 1))
+  opt("random_search")$optimize(ti)
   archivenames <- colnames(ti$archive$data())
   archivenames <- c(archivenames, "propose.time", "errors.model")
 
   eval_mbo <- function(params, multimsr = FALSE, n.objectives = 1, surrogate = surr) {
-    ti <- (if (n.objectives == 1) TuningInstanceSingleCrit else TuningInstanceMultiCrit)$new(tsk("pima"),
-      ll, rsmp("holdout"), (if (n.objectives == 1) msr else msrs)(c("classif.auc", if (multimsr) "classif.tpr")),
-      ps, trm("evals", n_evals = 11))
-    tuner <- TunerInterMBO$new(n.objectives)
+    if (n.objectives == 1) {
+      ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 11))
+    } else {
+      ti <- OptimInstanceMultiCrit$new(objective.mc, ps, trm("evals", n_evals = 11))
+    }
+    tuner <- OptimizerInterMBO$new(n.objectives)
     params$surrogate.learner <- surrogate
     if (is.null(params$infill.opt)) params$infill.opt <- "focussearch"  # TODO: only here because of https://github.com/mlr-org/paradox/issues/265
     tuner$param_set$values <- params
