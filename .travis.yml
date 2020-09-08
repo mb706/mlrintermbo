@@ -43,9 +43,9 @@ script:
   - echo 'Filled the cache with installed R packages.'
   - Rscript -e 'message("INSTALLED PACKS:"); installed.packages()[,2:3]'
   - R CMD build .
-  - R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
+  - travis_wait 100 R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
   - grep -q -R "WARNING" "mlrintermbo.Rcheck/00check.log" ; [ $? -ne 0 ]
-  - Rscript -e 'covr::codecov(quiet=FALSE)'
+  - travis_wait 100 Rscript -e 'covr::codecov(quiet=FALSE)'
 before_deploy:
   - R CMD INSTALL mlrintermbo*.tar.gz
   - Rscript -e 'pkgdown::build_site(); roxygen2::roxygenise(); tools::buildVignettes(dir = ".");'
