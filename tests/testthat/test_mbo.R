@@ -2,13 +2,19 @@ context("manual tests")
 
 test_that("mbo default", {
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
+
+  # get archivenames
+  ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 1))
+  tnr("random_search")$optimize(ti)
+  archivenames <- colnames(ti$archive$data())
+  archivenames <- c(archivenames, "propose.time", "errors.model", "crit.vals")
+
+
   ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
 
   tuner <- TunerInterMBO$new()
 
   tuner$optimize(ti)
-
-  archivenames <- c("cp", "minsplit", "classif.auc", "resample_result", "timestamp", "batch_nr", "x_domain", "propose.time", "crit.vals", "errors.model")
 
   expect_names(names(ti$archive$data()), permutation.of = c(archivenames, "classif.auc", "propose.time", "crit.vals", "errors.model"))
 
