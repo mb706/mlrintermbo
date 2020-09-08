@@ -40,6 +40,7 @@ script:
   - R CMD build .
   - travis_wait 100 R CMD check mlrintermbo*.tar.gz --as-cran --run-donttest
   - grep -q -R "WARNING" "mlrintermbo.Rcheck/00check.log" ; [ $? -ne 0 ]
+after_success:
   - travis_wait 100 Rscript -e 'covr::codecov(quiet=FALSE)'
 before_deploy:
   - R CMD INSTALL mlrintermbo*.tar.gz
