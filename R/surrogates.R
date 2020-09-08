@@ -16,6 +16,17 @@
 #'   If more elaborate imputation is desired, it may be desirable to set this to `FALSE` and instead perform custom imputation
 #'   using \pkg{mlr3pipelines}.
 #'   Default is `!numeric`.
+#'
+#' @examples
+#' # DiceKriging Learner:
+#' makeMlr3Surrogate()
+#'
+#' # mlr3pipelines Graph: imputation %>>% 'ranger' (randomForest):
+#' makeMlr3Surrogate(is.numeric = FALSE)
+#'
+#' # just the 'ranger' Learner:
+#' makeMlr3Surrogate(is.numeric = FALSE, has.dependencies = FALSE)
+#'
 #' @export
 makeMlr3Surrogate <- function(is.numeric = TRUE, is.noisy = TRUE, has.dependencies = !is.numeric) {
   if (is.numeric) {
