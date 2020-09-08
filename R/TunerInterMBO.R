@@ -12,7 +12,7 @@
 #'
 #' @include paramset.R
 #' @include optimize.R
-#' @example
+#' @examples
 #' library("paradox")
 #' library("bbotk")
 #'
