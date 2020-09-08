@@ -2,7 +2,7 @@ context("manual tests")
 
 test_that("mbo default", {
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
-  ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("cv"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
+  ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
 
   tuner <- TunerInterMBO$new()
 
@@ -19,14 +19,19 @@ test_that("mbo different settings", {
 
   set.seed(2)
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
-  archivenames <- c("cp", "minsplit", "classif.auc", "resample_result", "timestamp", "batch_nr", "x_domain", "propose.time", "errors.model")
 
   ll <- lrn("classif.rpart", predict_type = "prob")
   surr <- mlr3::LearnerRegrFeatureless$new()
   surr$predict_type = "se"
+
+  ti <- TuningInstanceSingleCrit$new(tsk("pima"), ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 1))
+  tnr("random_search")$optimize(ti)
+  archivenames <- colnames(ti$archive$data())
+  archivenames <- c(archivenames, "propose.time", "errors.model")
+
   eval_mbo <- function(params, multimsr = FALSE, n.objectives = 1, surrogate = surr) {
     ti <- (if (n.objectives == 1) TuningInstanceSingleCrit else TuningInstanceMultiCrit)$new(tsk("pima"),
-      ll, rsmp("cv"), (if (n.objectives == 1) msr else msrs)(c("classif.auc", if (multimsr) "classif.tpr")),
+      ll, rsmp("holdout"), (if (n.objectives == 1) msr else msrs)(c("classif.auc", if (multimsr) "classif.tpr")),
       ps, trm("evals", n_evals = 11))
     tuner <- TunerInterMBO$new(n.objectives)
     params$surrogate.learner <- surrogate

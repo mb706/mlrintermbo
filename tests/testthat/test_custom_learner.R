@@ -4,7 +4,7 @@ test_that("makeMlr3Surrogate", {
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 
   testSurrogate <- function(s) {
-    ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("cv"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
+    ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
     tuner <- TunerInterMBO$new()
     values <- list(surrogate.learner = s, infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2)
     values$infill.opt <- "focussearch"  # TODO: only here because of https://github.com/mlr-org/paradox/issues/265
@@ -40,7 +40,7 @@ test_that("custom surrogate", {
 
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 
-  ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("cv"), msr("classif.auc"), ps, trm("evals", n_evals = 20))
+  ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 20))
   tuner <- TunerInterMBO$new()
   tuner$param_set$values$surrogate.learner <- cus
   tuner$param_set$values$infill.crit <- "MeanResponse"
