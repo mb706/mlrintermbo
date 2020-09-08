@@ -33,6 +33,7 @@ Suggests:
     mlr3learners,
     mlr3pipelines,
     mlrMBO,
+    ranger,
     rpart
 LazyData: yes
 Roxygen: list(markdown = TRUE, r6 = FALSE)
