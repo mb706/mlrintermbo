@@ -20,13 +20,12 @@ test_that("makeMlr3Surrogate", {
     tuner$optimize(ti)
   }
 
-  testSurrogate(makeMlr3Surrogate(TRUE, TRUE, FALSE))
+  testSurrogate(makeMlr3Surrogate(FALSE, TRUE, FALSE))
   skip_on_cran()
+  testSurrogate(makeMlr3Surrogate(TRUE, TRUE, FALSE))
   testSurrogate(makeMlr3Surrogate(TRUE, TRUE, TRUE))
   testSurrogate(makeMlr3Surrogate(TRUE, FALSE, TRUE))
   testSurrogate(makeMlr3Surrogate(FALSE, TRUE, TRUE))
-  testSurrogate(makeMlr3Surrogate(FALSE, TRUE, FALSE))
-
 
 })
 
