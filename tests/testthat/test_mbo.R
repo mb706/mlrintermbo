@@ -1,6 +1,7 @@
 context("manual tests")
 
 test_that("mbo default", {
+  skip_on_cran()
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 
   # get archivenames
@@ -96,6 +97,7 @@ test_that("mbo different settings", {
   expect_equal(is.na(ti$archive$data()$propose.time), rep(c(TRUE, FALSE), c(8, 4)))
   expect_equal(ti$archive$data()$batch_nr, rep(1:3, c(8, 2, 2)))
 
+  skip_on_cran()   # skip from here, things take too much time.
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
   ti <- eval_mbo(list(propose.points = 2, multipoint.method = "cl", infill.crit = "EI", infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2))
   expect_names(names(ti$archive$data()), permutation.of = c(archivenames, "crit.vals"))
