@@ -13,7 +13,7 @@ test_that("mbo with autotuner", {
   surr <- mlr3::LearnerRegrFeatureless$new()
   surr$predict_type = "se"
 
-  at <- AutoTuner$new(ll, rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11), tnr("intermbo", surrogate.learner = surr))
+  at <- AutoTuner$new(learner = ll, resampling = rsmp("holdout"), measure = msr("classif.auc"), terminator = trm("evals", n_evals = 11), tuner = tnr("intermbo", surrogate.learner = surr), search_space = ps)
 
   rres <- mlr3::resample(tsk("pima"), at, rsmp("cv", folds = 5))
 

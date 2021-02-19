@@ -5,13 +5,13 @@ test_that("mbo default", {
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
 
   # get archivenames
-  ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 1))
+  ti <- TuningInstanceSingleCrit$new(task = tsk("pima"), learner = lrn("classif.rpart", predict_type = "prob"), resampling = rsmp("holdout"), measure = msr("classif.auc"), terminator = trm("evals", n_evals = 1), search_space = ps)
   tnr("random_search")$optimize(ti)
   archivenames <- colnames(ti$archive$data())
   archivenames <- c(archivenames, "propose.time", "errors.model", "crit.vals")
 
   set.seed(1)
-  ti <- TuningInstanceSingleCrit$new(tsk("pima"), lrn("classif.rpart", predict_type = "prob"), rsmp("holdout"), msr("classif.auc"), ps, trm("evals", n_evals = 11))
+  ti <- TuningInstanceSingleCrit$new(task = tsk("pima"), learner = lrn("classif.rpart", predict_type = "prob"), resampling = rsmp("holdout"), measure = msr("classif.auc"), terminator = trm("evals", n_evals = 11), search_space = ps)
 
   tuner <- TunerInterMBO$new()
 
