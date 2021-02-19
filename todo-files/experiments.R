@@ -9,7 +9,7 @@ library("data.table")
 
 options(error=recover)
 
-Sys.setenv(NOT_CRAN = "true")
+Sys.setenv(NOT_CRAN = "false")
 testthat::test_package("mlrintermbo")
 
 devtools::load_all()
@@ -21,6 +21,8 @@ tun <- tnr("intermbo", n.objectives = 2, infill.crit = "DIB")
 tun$optimize(ti)
 
 profvis::profvis(devtools::test())
+
+
 devtools::test(filter = "fuzzing")
 devtools::test(filter = "learner")
 devtools::test(filter = "mbo")
