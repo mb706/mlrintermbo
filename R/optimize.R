@@ -53,7 +53,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
   design <- as.data.frame(instance$archive$data[, instance$objective$codomain$ids(), with = FALSE])
   colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
-  design <- cbind(do.call(rbind.data.frame, instance$archive$data$x_domain), design)
+  design <- cbind(as.data.frame(instance$archive$data[, instance$archive$cols_x, with = FALSE]), design)
   minimize <- unname(map_lgl(instance$objective$codomain$tags, function(x) "minimize" %in% x))  # important to unname, mlrMBO fails otherwise
 
   proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {  # nocov start

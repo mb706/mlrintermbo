@@ -198,3 +198,20 @@ test_that("mbo different settings", {
 
 })
 
+test_that("trafo", {
+  skip_on_cran()
+  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = -1, upper = 0)))
+  ps$trafo <- function(x, param_set) { x$cp <- -x$cp ; x }
+
+  # get archivenames
+  ti <- TuningInstanceSingleCrit$new(task = tsk("pima"), learner = lrn("classif.rpart", predict_type = "prob"), resampling = rsmp("holdout"), measure = msr("classif.auc"), terminator = trm("evals", n_evals = 11), search_space = ps)
+  tuner <- TunerInterMBO$new()
+
+  tuner$optimize(ti)
+
+  expect_data_table(ti$archive$data, nrows = 11)
+
+  expect_true(all(ti$archive$data$cp <= 0))
+
+  expect_true(all(map_dbl(ti$archive$data$x_domain, "cp") >= 0))
+})
