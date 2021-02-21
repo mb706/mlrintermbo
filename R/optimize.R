@@ -51,9 +51,9 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
   # The following therefore tells the encall() further down whether to generate a proposal.
   still.needs.proposition <- !instance$terminator$is_terminated(instance$archive)
 
-  design <- as.data.frame(instance$archive$data[, instance$objective$codomain$ids(), with = FALSE])
+  design <- as.data.frame(instance$archive$data[, instance$objective$codomain$ids(), with = FALSE], stringsAsFactors = FALSE)
   colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
-  design <- cbind(as.data.frame(instance$archive$data[, instance$archive$cols_x, with = FALSE]), design)
+  design <- cbind(as.data.frame(instance$archive$data[, instance$archive$cols_x, with = FALSE], stringsAsFactors = FALSE), design)
   minimize <- unname(map_lgl(instance$objective$codomain$tags, function(x) "minimize" %in% x))  # important to unname, mlrMBO fails otherwise
 
   proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {  # nocov start
@@ -92,11 +92,11 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
     if (instance$terminator$is_terminated(instance$archive)) {
       return(invisible(NULL))
     }
-    perfs <- as.data.frame(evals)[seq_len(n.objectives)]
+    perfs <- as.data.frame(evals, stringsAsFactors = FALSE)[seq_len(n.objectives)]
 
     proposition <- encall(self$r.session, perfs, expr = {  # nocov start
       # using the saved design & opt.state here; save the new opt.state righ taway
-      persistent$opt.state <- mlrMBO::updateSMBO(opt.state = persistent$opt.state, x = persistent$design, y = as.list(as.data.frame(t(perfs))))
+      persistent$opt.state <- mlrMBO::updateSMBO(opt.state = persistent$opt.state, x = persistent$design, y = as.list(as.data.frame(t(perfs), stringsAsFactors = FALSE)))
       proposition <- mlrMBO::proposePoints(persistent$opt.state)
       proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(persistent$opt.state$opt.problem$fun), proposition$prop.points)
       persistent$design <- proposition$prop.points  # save the design again

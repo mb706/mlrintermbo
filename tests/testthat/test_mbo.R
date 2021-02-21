@@ -204,6 +204,7 @@ test_that("trafo", {
   ps$trafo <- function(x, param_set) { x$cp <- -x$cp ; x }
 
   # get archivenames
+  set.seed(1)
   ti <- TuningInstanceSingleCrit$new(task = tsk("pima"), learner = lrn("classif.rpart", predict_type = "prob"), resampling = rsmp("holdout"), measure = msr("classif.auc"), terminator = trm("evals", n_evals = 11), search_space = ps)
   tuner <- TunerInterMBO$new()
 
