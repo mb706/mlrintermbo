@@ -56,11 +56,12 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ${{ env.R_LIBS_USER }}
-          key: ${{ matrix.os }}-${{ steps.install-r.outputs.installed-r-version }}-${{ hashFiles('.github/deps.txt') }}
+          key: ${{ matrix.os }}-${{ steps.install-r.outputs.installed-r-version }}-2-${{ hashFiles('.github/deps.txt') }}
+          restore-keys: ${{ matrix.os }}-${{ steps.install-r.outputs.installed-r-version }}-
       - shell: Rscript {0}
         name: install necessary build env packages
         run: |
-          for (req in c("remotes", "roxygen2", "covr")) if (!require(req, quietly = TRUE)) install.packages(req)
+          for (req in c("remotes", "roxygen2", "covr", "pkgdown")) if (!require(req, quietly = TRUE)) install.packages(req)
       - if: runner.os == 'Linux'
         name: install system requirements
         run: |
