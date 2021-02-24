@@ -5,7 +5,7 @@ Authors@R: c(
     person("Martin", "Binder", email = "developer.mb706@doublecaret.com", role = c("aut", "cre")))
 URL: https://github.com/mb706/mlrintermbo
 BugReports: https://github.com/mb706/mlrintermbo/issues
-License: AGPL
+License: LGPL-3
 Encoding: UTF-8
 Imports:
     backports,
@@ -38,7 +38,7 @@ Suggests:
 LazyData: yes
 Roxygen: list(markdown = TRUE, r6 = FALSE)
 ByteCompile: yes
-Version: 0.4.0
+Version: 0.5.0
 RoxygenNote: 7.1.1
 Collate: 
     'utils.R'
