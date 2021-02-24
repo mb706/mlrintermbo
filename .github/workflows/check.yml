@@ -112,7 +112,7 @@ jobs:
           roxygen2::roxygenise()
           tools::buildVignettes(dir = ".")
       - name: Deploy Docs
-        if: ${{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' }}
+        if: ${{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' && github.ref == 'refs/heads/master' }}
         run: |
           git checkout --orphan gh-pages
           git --work-tree docs add --all
