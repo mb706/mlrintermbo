@@ -1,3 +1,8 @@
+* mlrintermbo 0.5.0
+  - license changed to LGPL-3
+  - initial.design.size treatment fixed
+  - fuzzing of mlrMBO calls
+  - initial design now generated using Latin Hypercube Sampling ('lhs' package)
 
 * mlrintermbo 0.4.0
   - general stability fixes

@@ -39,8 +39,8 @@ test_that("fuzzing intermbo", {
   for (pari in which(psnew$is_number)) {
     par <- psnew$params[[pari]]
     if (par$is_bounded) next
-    if (is.finite(par$lower) && is.numeric(par$default) && is.finite(par$default)) {
-      if (par$default > par$lower) {
+    if (is.finite(par$lower)) {
+      if (is.numeric(par$default) && is.finite(par$default) && par$default > par$lower) {
         par$upper = (par$lower - par$default) + par$default * 2
       } else {
         par$upper = par$lower + 2
@@ -50,8 +50,8 @@ test_that("fuzzing intermbo", {
       par$upper = 1
     }
   }
-  psnew$params$initial.design.size$lower = 1
-  psnew$params$initial.design.size$upper = 2
+  psnew$params$initial.design.size$lower = 2
+  psnew$params$initial.design.size$upper = 4
 
   ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamDbl$new("minsplit", lower = 1, upper = 20), ParamDbl$new("minbucket", lower = 1, upper = 20)))
   ps$trafo <- function(x, param_set) {
@@ -68,7 +68,7 @@ test_that("fuzzing intermbo", {
   tuner <- OptimizerInterMBO$new(on.surrogate.error = "quiet")
 
   set.seed(1)
-  for (setting in seq_len(20)) {
+  for (setting in seq_len(10)) {
     repeat {
       setting <- generate_design_random(psnew, 1)$transpose()[[1]]
       ##> Multi-point proposal using constant liar needs the infill criterion 'ei' or 'aei', but you used '___'!
@@ -80,11 +80,13 @@ test_that("fuzzing intermbo", {
       # this only works with original learner
       if (setting$infill.crit == "AEI" && isTRUE(setting$infill.crit.aei.use.nugget)) next
 
+      if (setting$multipoint.method == "moimbo") setting$infill.interleave.random.points = 0  # https://github.com/mlr-org/mlrMBO/issues/508
+
       break
     }
     setting$surrogate.learner <- surr
 
-    ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 3))
+    ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 5))
     tuner$param_set$values <- setting
     suppressWarnings(tuner$optimize(ti))
   }
@@ -95,7 +97,7 @@ test_that("fuzzing intermbo", {
 
   tuner <- OptimizerInterMBO$new(on.surrogate.error = "stop")
   set.seed(2)
-  for (setting in seq_len(20)) {
+  for (setting in seq_len(10)) {
 
     repeat {
       setting <- generate_design_random(psnew, 1)$transpose()[[1]]
@@ -108,11 +110,13 @@ test_that("fuzzing intermbo", {
       # this only works with original learner
       if (setting$infill.crit == "AEI" && isTRUE(setting$infill.crit.aei.use.nugget)) next
 
+      if (setting$multipoint.method == "moimbo") setting$infill.interleave.random.points = 0  # https://github.com/mlr-org/mlrMBO/issues/508
+
       break
     }
     setting$surrogate.learner <- surr
 
-    ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 3))
+    ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 13))
     tuner$param_set$values <- setting
     suppressWarnings(tuner$optimize(ti))
   }

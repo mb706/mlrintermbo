@@ -6,7 +6,7 @@ mboParamSet <- function(n.objectives) {
     ParamInt$new("propose.points", lower = 1, default = 1),
     ParamFct$new("final.method", levels = c("best.true.y", "last.proposed", "best.predicted"), default = "best.true.y"),
     # setMBOControlInfill
-    ParamFct$new("infill.crit", levels = c("MeanResponse", "StandardError", "EI", "CB", "AEI", "EQI", "DIB", "AdaCB"), default = "CB"),
+    ParamFct$new("infill.crit", levels = c("MeanResponse", "StandardError", "EI", "CB", "AEI", "EQI", if (n.objectives > 1) "DIB", "AdaCB"), default = "CB"),
     ParamDbl$new("infill.crit.se.threshold", lower = 0, default = 1e-6),
     ParamDbl$new("infill.crit.cb.lambda", special_vals = list(NULL), default = NULL),
     ParamLgl$new("infill.crit.aei.use.nugget", default = FALSE),
@@ -23,7 +23,7 @@ mboParamSet <- function(n.objectives) {
     ParamInt$new("infill.opt.focussearch.points", lower = 1, default = 1000),
     ParamUty$new("infill.opt.cmaes.control"),
     ParamInt$new("infill.opt.ea.maxit", lower = 1, default = 500),
-    ParamInt$new("infill.opt.ea.mu", default = 1),
+    ParamInt$new("infill.opt.ea.mu", lower = 2),
     ParamDbl$new("infill.opt.ea.sbx.eta", lower = 0, default = 15),  # TODO not sure about bounds
     ParamDbl$new("infill.opt.ea.sbx.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?
     ParamDbl$new("infill.opt.ea.pm.eta", lower = 0, default = 15),  # TODO not sure about bounds
@@ -56,7 +56,7 @@ mboParamSet <- function(n.objectives) {
     ParamUty$new("surrogate.learner", custom_check = detachEnv(function(x) checkClass(x, "Learner", null.ok = TRUE)))
   ), if (n.objectives > 1) list(
     # setMBOControlMultiObj
-    ParamFct$new("multiobj.method", levels = c("parego", "dib", "mspot"), default= "dib"),
+    ParamFct$new("multiobj.method", levels = c("parego", "dib", "mspot"), default = "dib"),
     ParamFct$new("multiobj.ref.point.method", levels = c("all", "front", "const"), default = "all"),
     ParamDbl$new("multiobj.ref.point.offset", default = 1),
     ParamUty$new("multiobj.ref.point.val", custom_check = detachEnv(function(x) checkNumeric(x, any.missing = FALSE, len = n.objectives), "n.objectives")),
@@ -70,10 +70,9 @@ mboParamSet <- function(n.objectives) {
     ParamDbl$new("multiobj.mspot.select.crit.cb.lambda", special_vals = list(NULL), default = NULL)
   )))$
     add_dep("infill.crit.se.threshold", "infill.crit", CondAnyOf$new(c("EI", "AEI", "EQI")))$
-    add_dep("infill.crit.cb.lambda", "infill.crit", CondAnyOf$new(c("CB", "DIB")))$
+    add_dep("infill.crit.cb.lambda", "infill.crit", CondAnyOf$new(c("CB", if (n.objectives > 1) "DIB")))$
     add_dep("infill.crit.aei.use.nugget", "infill.crit", CondEqual$new("AEI"))$
     add_dep("infill.crit.eqi.beta", "infill.crit", CondEqual$new("EQI"))$
-    add_dep("infill.crit.sms.eps", "infill.crit", CondEqual$new("DIB"))$
     add_dep("infill.crit.cb.lambda.start", "infill.crit", CondEqual$new("AdaCB"))$
     add_dep("infill.crit.cb.lambda.end", "infill.crit", CondEqual$new("AdaCB"))$
     add_dep("infill.filter.proposed.points.tol", "infill.filter.proposed.points", CondEqual$new(TRUE))$
@@ -113,7 +112,9 @@ mboParamSet <- function(n.objectives) {
       add_dep("multiobj.parego.use.margin.points", "multiobj.method", CondEqual$new("parego"))$
       add_dep("multiobj.parego.sample.more.weights", "multiobj.method", CondEqual$new("parego"))$
       add_dep("multiobj.parego.normalize", "multiobj.method", CondEqual$new("parego"))$
+#      add_dep("infill.crit.sms.eps", "infill.crit", CondEqual$new("DIB"))$
       add_dep("multiobj.dib.indicator", "multiobj.method", CondEqual$new("dib"))$
+      add_dep("infill.crit.sms.eps", "multiobj.dib.indicator", CondEqual$new("sms"))$
       add_dep("multiobj.mspot.select.crit", "multiobj.method", CondEqual$new("mspot"))$
       add_dep("multiobj.mspot.select.crit.cb.lambda", "multiobj.mspot.select.crit", CondEqual$new("CB"))
   }

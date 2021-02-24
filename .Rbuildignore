@@ -1,7 +1,8 @@
+^LICENSE$
 ^tools$
 ^todo-files$
 ^man-roxygen$
 \.gitignore
 ^\.git$
-^\.travis.yml$
+^\.github$
 ^.gitattributes$

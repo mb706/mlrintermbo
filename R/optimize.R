@@ -24,7 +24,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
   par.set <- ParamHelpersParamSet(self$r.session, instance$search_space)
   learner <- vals$surrogate.learner
 
-  init.size <- vals$initial.design.size %??% length(par.set$pars) * 4
+  init.size <- vals$initial.design.size %??% (length(par.set$pars) * 4)
 
   if (init.size != 0 && instance$archive$n_evals != 0) {
     warning("Both 'initial.design.size' and number of instance's previously evaluated points are nonzero, so the initial may be larger than you expect.")
@@ -41,7 +41,6 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
   # don't eval_batch if the instance is already terminated. Will need to check this again *after* the initial design
   if (init.size > 0 && !instance$terminator$is_terminated(instance$archive)) {
-    ## TODO: This is in contradiction to what mlrMBO usually does. depends on https://github.com/mlr-org/paradox/issues/307
     instance$eval_batch(generate_design_random(instance$search_space, init.size)$data)
   }
   # so *in principle* we could stop here if the budget is exhausted. However, we
@@ -86,7 +85,14 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
     # TODO: the following are overwritten because they appear to be broken in mlrMBO. maybe repair this
     proposition$crit.components <- NULL
     proposition$prop.type <- NULL
-    extra <- as.data.frame(proposition, stringsAsFactors = FALSE)
+    designsize <- nrow(design)
+    extra <- as.data.frame(lapply(proposition, function(x) {
+      if (NROW(x) == designsize) return(x)
+      if (NROW(x) == 1) return(x)
+      if (NROW(x) > designsize) stop("Unexpectedly got more extra info than proposed points.")
+      if (is.matrix(x)) return(rbind(x, matrix(NA, nrow = designsize - NROW(x), ncol = NCOL(x))))
+      c(x, rep(NA, designsize - NROW(x)))
+    }), stringsAsFactors = FALSE)
     evals <- instance$eval_batch(as.data.table(cbind(design, extra)))
 
     if (instance$terminator$is_terminated(instance$archive)) {

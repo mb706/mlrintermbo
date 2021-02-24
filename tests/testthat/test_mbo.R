@@ -65,6 +65,9 @@ test_that("mbo different settings", {
   expect_data_table(ti$archive$data, nrows = 11)
   expect_equal(is.na(ti$archive$data$propose.time), rep(c(TRUE, FALSE), c(8, 3)))
 
+  ti <- eval_mbo(list(initial.design.size = 15))
+  expect_data_table(ti$archive$data, nrows = 15)
+
   ti <- eval_mbo(list(infill.opt = "ea", infill.opt.ea.maxit = 10, infill.opt.ea.mu = 2, infill.opt.ea.sbx.eta = 13, infill.opt.ea.sbx.p = 0.7, infill.opt.ea.pm.eta = 11, infill.opt.ea.pm.p = 0.4, infill.opt.ea.lambda = 2))
   expect_names(names(ti$archive$data), permutation.of = c(archivenames, "crit.vals"))
   expect_data_table(ti$archive$data, nrows = 11)
@@ -170,7 +173,7 @@ test_that("mbo different settings", {
   expect_data_table(ti$archive$data, nrows = 11)
   expect_equal(is.na(ti$archive$data$propose.time), rep(c(TRUE, FALSE), c(8, 3)))
 
-  ti <- eval_mbo(list(infill.crit = "DIB", multiobj.method = "dib", infill.crit.sms.eps = 0.01, infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2), multimsr = TRUE, n.objectives = 2)
+  ti <- eval_mbo(list(infill.crit = "DIB", multiobj.method = "dib", multiobj.dib.indicator = "sms", infill.crit.sms.eps = 0.01, infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2), multimsr = TRUE, n.objectives = 2)
   expect_names(names(ti$archive$data), permutation.of = c(archivenames, "classif.tpr", "crit.vals"))
   expect_data_table(ti$archive$data, nrows = 11)
   expect_equal(is.na(ti$archive$data$propose.time), rep(c(TRUE, FALSE), c(8, 3)))
