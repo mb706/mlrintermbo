@@ -114,6 +114,8 @@ jobs:
       - name: Deploy Docs
         if: ${{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' && github.ref == 'refs/heads/master' }}
         run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "mb706@users.noreply.github.com"
           git checkout --orphan gh-pages
           git --work-tree=docs add --all
           git --work-tree=docs commit -m "gh-pages"
