@@ -41,7 +41,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
   # don't eval_batch if the instance is already terminated. Will need to check this again *after* the initial design
   if (init.size > 0 && !instance$terminator$is_terminated(instance$archive)) {
-    instance$eval_batch(generate_design_random(instance$search_space, init.size)$data)
+    instance$eval_batch(generate_design_lhs(instance$search_space, init.size)$data)
   }
   # so *in principle* we could stop here if the budget is exhausted. However, we
   # do need to construct the `opt.state` so `assign_result` can do its thing.
