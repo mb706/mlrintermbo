@@ -3,16 +3,28 @@
 \name{OptimizerInterMBO}
 \alias{OptimizerInterMBO}
 \alias{mlr_optimizers_intermbo}
+\alias{mlr_tuners_intermbo}
 \alias{TunerInterMBO}
-\title{Tuner using mlrMBO}
+\title{Tuner and Optimizer using mlrMBO}
 \format{
-\link[R6:R6Class]{R6::R6Class} object inheriting from \link[mlr3tuning:Tuner]{mlr3tuning::Tuner}.
+\link[R6:R6Class]{R6::R6Class} object inheriting from \link[mlr3tuning:Tuner]{mlr3tuning::Tuner} or \link[bbotk:Optimizer]{bbotk::Optimizer}.
 }
 \description{
-Subclass for mlrMBO tuning.
+mlrMBO tuning object.
 
 mlrMBO must not be loaded directly into R when using mlr3, for various reasons.
-TunerInterMBO takes care that this does not happen.
+TunerInterMBO and OptimizerInterMBO take care that this does not happen.
+
+To optimize an objective (using the \code{bbotk} package), use the \code{OptimizerInterMBO} object,
+ideally obtained through the \code{\link[bbotk:opt]{bbotk::opt()}} function: \code{opt("intermbo")}.
+
+To tune a machine learning method represented by a \link[mlr3:Learner]{mlr3::Learner} object,
+use the \code{TunerInterMBO} obtained ideally through \code{\link[mlr3tuning:tnr]{mlr3tuning::tnr()}}: \code{tnr("intermbo")}.
+
+The \code{\link[paradox:ParamSet]{ParamSet}} of the optimizer / tuner reflects the possible configuration
+options of mlrMBO. The control parameters map directly to the arguments of
+\code{\link[mlrMBO:makeMBOControl]{mlrMBO::makeMBOControl()}}, \code{\link[mlrMBO:setMBOControlInfill]{mlrMBO::setMBOControlInfill()}}, \code{\link[mlrMBO:setMBOControlMultiObj]{mlrMBO::setMBOControlMultiObj()}},
+\code{\link[mlrMBO:setMBOControlMultiPoint]{mlrMBO::setMBOControlMultiPoint()}}, and \code{\link[mlrMBO:setMBOControlTermination]{mlrMBO::setMBOControlTermination()}}.
 }
 \examples{
 library("paradox")
