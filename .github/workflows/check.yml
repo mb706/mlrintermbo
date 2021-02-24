@@ -38,6 +38,9 @@ jobs:
             action: coverage
             r: release
     steps:
+      - name: Install X11 for MacOS
+        if: runner.os == 'macos'
+        run: brew cask install xquartz
       - uses: actions/checkout@v2
       - uses: r-lib/actions/setup-r@v1
         id: install-r
