@@ -1,14 +1,25 @@
-#' @title Tuner using mlrMBO
+#' @title Tuner and Optimizer using mlrMBO
 #'
-#' @aliases mlr_optimizers_intermbo
+#' @aliases mlr_optimizers_intermbo mlr_tuners_intermbo
 #' @usage NULL
-#' @format [R6::R6Class] object inheriting from [mlr3tuning::Tuner].
+#' @format [R6::R6Class] object inheriting from [mlr3tuning::Tuner] or [bbotk::Optimizer].
 #'
 #' @description
-#' Subclass for mlrMBO tuning.
+#' mlrMBO tuning object.
 #'
 #' mlrMBO must not be loaded directly into R when using mlr3, for various reasons.
-#' TunerInterMBO takes care that this does not happen.
+#' TunerInterMBO and OptimizerInterMBO take care that this does not happen.
+#'
+#' To optimize an objective (using the `bbotk` package), use the `OptimizerInterMBO` object,
+#' ideally obtained through the [bbotk::opt()] function: `opt("intermbo")`.
+#'
+#' To tune a machine learning method represented by a [mlr3::Learner] object,
+#' use the `TunerInterMBO` obtained ideally through [mlr3tuning::tnr()]: `tnr("intermbo")`.
+#'
+#' The [`ParamSet`][paradox::ParamSet] of the optimizer / tuner reflects the possible configuration
+#' options of mlrMBO. The control parameters map directly to the arguments of
+#' [mlrMBO::makeMBOControl()], [mlrMBO::setMBOControlInfill()], [mlrMBO::setMBOControlMultiObj()],
+#' [mlrMBO::setMBOControlMultiPoint()], and [mlrMBO::setMBOControlTermination()].
 #'
 #' @include paramset.R
 #' @include optimize.R
