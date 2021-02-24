@@ -115,8 +115,8 @@ jobs:
         if: ${{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' && github.ref == 'refs/heads/master' }}
         run: |
           git checkout --orphan gh-pages
-          git --work-tree docs add --all
-          git --work-tree build commit -m "gh-pages"
+          git --work-tree=docs add --all
+          git --work-tree=docs commit -m "gh-pages"
           git push origin HEAD:gh-pages --force
       - name: Log
         if: ${{ failure() }}
