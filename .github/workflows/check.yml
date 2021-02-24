@@ -60,7 +60,7 @@ jobs:
       - shell: Rscript {0}
         name: install necessary build env packages
         run: |
-          for (req = c("remotes", "roxygen2", "covr")) if (!require(req, quietly = TRUE)) install.packages(req)
+          for (req in c("remotes", "roxygen2", "covr")) if (!require(req, quietly = TRUE)) install.packages(req)
       - if: runner.os == 'Linux'
         name: install system requirements
         run: |
