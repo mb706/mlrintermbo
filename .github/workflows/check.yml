@@ -97,18 +97,18 @@ jobs:
         shell: Rscript {0}
         run: covr::codecov(quiet = FALSE)
       - name: install
-        if: {{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' }}
+        if: ${{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' }}
         working-directory: ..
         run: 'R CMD INSTALL *.tar.gz'
       - name: Build Docs
-        if: {{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' }}
+        if: ${{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' }}
         shell: Rscript {0}
         run: |
           pkgdown::build_site()
           roxygen2::roxygenise()
           tools::buildVignettes(dir = ".")
       - name: Deploy Docs
-        if: {{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' }}
+        if: ${{ matrix.action != 'coverage' && matrix.os == 'ubuntu-20.04' && matrix.r == 'release' }}
         run: |
           git checkout --orphan gh-pages
           git --work-tree docs add --all
