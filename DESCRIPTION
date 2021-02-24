@@ -1,6 +1,6 @@
 Package: mlrintermbo
 Title: Model-Based Optimization for 'mlr3' Through 'mlrMBO'
-Description: 'mlrMBO' can ordinarily not be used for optimization within 'mlr3', because of
+Description: The 'mlrMBO' package can ordinarily not be used for optimization within 'mlr3', because of
   incompatibilities of their respective class systems. 'mlrintermbo' offers a compatibility
   interface that provides 'mlrMBO' as an 'mlr3tuning' 'Tuner' object, for tuning of machine
   learning algorithms within 'mlr3', as well as a 'bbotk' 'Optimizer' object for optimization
