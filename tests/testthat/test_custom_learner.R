@@ -52,13 +52,17 @@ test_that("custom surrogate", {
   objective <- ObjectiveRFun$new(function(xs) {
     list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2)
   }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
-  ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 20))
   tuner <- OptimizerInterMBO$new()
   tuner$param_set$values$surrogate.learner <- cus
   tuner$param_set$values$infill.crit <- "MeanResponse"
   tuner$param_set$values$final.method <- "last.proposed"
+
+  ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 10))
   tuner$optimize(ti)
 
+  skip_on_cran()
+  ti <- OptimInstanceSingleCrit$new(objective, ps, trm("evals", n_evals = 20))
+  tuner$optimize(ti)
   expect_equal(ti$result_x_domain$cp, 0.2, tolerance = 0.01)
 
 })
