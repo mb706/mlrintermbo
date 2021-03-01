@@ -31,7 +31,7 @@ When installing `mlrintermbo`, the required `mlrMBO` package is not installed au
 
 ```r
 install.packages("mlrMBO")
-remotes::install_github("mlr-org/mlrMBO")
+install.packages("mlrintermbo")
 ```
 
 ## License
