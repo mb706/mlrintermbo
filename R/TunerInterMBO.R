@@ -10,16 +10,36 @@
 #' mlrMBO must not be loaded directly into R when using mlr3, for various reasons.
 #' TunerInterMBO and OptimizerInterMBO take care that this does not happen.
 #'
+#' @section Construction:
+#'
 #' To optimize an objective (using the `bbotk` package), use the `OptimizerInterMBO` object,
 #' ideally obtained through the [bbotk::opt()] function: `opt("intermbo")`.
 #'
 #' To tune a machine learning method represented by a [mlr3::Learner] object,
 #' use the `TunerInterMBO` obtained ideally through [mlr3tuning::tnr()]: `tnr("intermbo")`.
 #'
+#' Both have following optional arguments:
+#' * `n.objectives` :: `integer(1)`\cr
+#'   Number of objectives to optimize. Default is 1 for ordinary ("single objective") optimization,
+#'   but can be breater than 1 for multi-objective optimization. See [mlrMBO::setMBOControlMultiObj()]
+#'   for details on multi-objective optimization in `mlrMBO`.
+#' * `on.surrogate.error` :: `character(1)`\cr
+#'   What to do when fitting or predicting the surrogate model fails. One of `"stop"` (throw error),
+#'   `"warn"`, and `"quiet"`(ignore and propose a random point).\cr
+#'   The surrogate model may fail sometimes, for example when the size
+#'   of the initial design is too small or when the objective function returns constant values. In practice
+#'   this is usually safe to ignore for single iterations (i.e. `"warn"` or `"quiet"`), but be aware
+#'   that MBO effectively degrades to random search when the surrogate model fails for all iterations.
+#'
+#' @section Configuration Parameters:
+#'
 #' The [`ParamSet`][paradox::ParamSet] of the optimizer / tuner reflects the possible configuration
 #' options of mlrMBO. The control parameters map directly to the arguments of
 #' [mlrMBO::makeMBOControl()], [mlrMBO::setMBOControlInfill()], [mlrMBO::setMBOControlMultiObj()],
 #' [mlrMBO::setMBOControlMultiPoint()], and [mlrMBO::setMBOControlTermination()].
+#'
+#'
+#' 
 #'
 #' @include paramset.R
 #' @include optimize.R
@@ -36,7 +56,10 @@
 #' instance <- OptimInstanceSingleCrit$new(objective, domain, trm("evals", n_evals = 6))
 #'
 #' # use intermbo optimizer
-#' optser <- opt("intermbo")
+#' #
+#' # Also warn on surrogate model errors
+#' # (this is the default and can be omitted)
+#' optser <- opt("intermbo", on.surrogate.error = "warn")
 #'
 #' # optimizer has hyperparameters from mlrMBO
 #' optser$param_set$values$final.method <- "best.predicted"
@@ -52,7 +75,7 @@ OptimizerInterMBO <- R6Class("OptimizerInterMBO",
     n.objectives = NULL,
     on.surrogate.error = NULL,
     r.session = NULL,
-    initialize = function(n.objectives = 1, on.surrogate.error = "stop") {
+    initialize = function(n.objectives = 1, on.surrogate.error = "warn") {
       self$n.objectives <- assertCount(n.objectives, positive = TRUE)
       self$on.surrogate.error <- assertChoice(on.surrogate.error, c("stop", "warn", "quiet"))
       self$r.session <- initSession(callr::r_session$new(wait_timeout = 10000))
