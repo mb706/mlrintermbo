@@ -41,7 +41,7 @@ install.packages("mlrintermbo")
       Assertion on 'xdt' failed: Must have at least 1 rows, but has 0 rows.
     ```
     
-    This is caused by a [bug in the `processx` package](https://github.com/r-lib/callr/issues/184). The bug is fixed on CRAN, installing the current versions using `install.packages(c("callr", "processx"))` should fix the issue.
+    This is caused by a [bug in the `callr` package](https://github.com/r-lib/callr/issues/184). The bug is fixed on CRAN, installing the current versions using `install.packages(c("callr", "processx"))` should fix the issue.
 * **Most other errors**
 
    Some errors, for example
