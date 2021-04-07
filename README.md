@@ -50,7 +50,7 @@ install.packages("mlrintermbo")
     Error: Domains[,1] must be less than or equal to Domains[,2]
     ```
     
-    are caused because the function being tuned is failing. (The error above happens when the objective function is giving constant values, which the surrogate learner does not handle well). Initialize the tuner with 
+    are caused because the surrogate model is failing. (The error above happens when the objective function is giving constant values, which the surrogate learner does not handle well). Initialize the tuner with 
 `on.surrogate.error` set to `"warn"` or `"quiet"` to ignore errors of the surrogate model. E.g.:
 
     ```r
