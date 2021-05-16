@@ -7,7 +7,7 @@ makeCapsuledLearner <- function(encing) {  # nocov start
   checkmate::assertClass(encing, "R6")
 
   property.translate <- list(
-    missings = "missings",
+    missings = "missing",
     weights = "weights",
     importance = "featimp",
     selected_features = character(0),
