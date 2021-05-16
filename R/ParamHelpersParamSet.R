@@ -4,7 +4,7 @@
 ParamHelpersParamSet <- function(session, paramset) {
   getRequires <- function(depname) {
     conds <- paramset$deps[get("id") == depname]
-    cond.expressions <- mapply(conditionAsExpression, conds$cond, conds$on)
+    cond.expressions <- mapply(function(...) conditionAsExpression(...), conds$cond, conds$on)
     Reduce(function(x, y) substitute(x && y, list(x = x, y = y)), cond.expressions)
   }
   data <- imap(paramset$params, function(param, pname) {
