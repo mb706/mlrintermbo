@@ -26,7 +26,7 @@ ParamHelpersParamSet <- function(session, paramset) {
 # condition: the Condition object
 # on: the variable the condition depends on
 conditionAsExpression <- function(condition, on) {
-  UseMethod("ConditionAsExpression")
+  UseMethod("conditionAsExpression")
 }
 
 conditionAsExpression.CondAnyOf <- function(condition, on) {
