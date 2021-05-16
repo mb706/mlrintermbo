@@ -20,7 +20,7 @@ makeCapsuledLearner <- function(encing) {  # nocov start
   lr <- mlr::makeRLearnerRegr("CapsuledMlr3Learner",
     package = encing$packages,
     par.set = ParamHelpers::makeParamSet(),
-    properties = unlist(unname(property.translate[c(encing$learner_properties, encing$feature_types, encing$predict_types)])),
+    properties = unlist(unname(property.translate[c(encing$properties, encing$feature_types, encing$predict_types)])),
     name = encing$id, short.name = encing$id
   )
   lr$encing <- encing
