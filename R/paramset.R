@@ -53,6 +53,7 @@ mboParamSet <- function(n.objectives) {
     ParamDbl$new("multipoint.moimbo.pm.p", lower = 0, upper = 1, default = 1),  # TODO not sure about bounds; is the default correct?moimbo
     # others
     ParamInt$new("initial.design.size", lower = 0),
+    ParamUty$new("fixed.initial.design", custom_check = detachEnv(function(x) checkDataTable(x))),
     ParamUty$new("surrogate.learner", custom_check = detachEnv(function(x) checkClass(x, "Learner", null.ok = TRUE)))
   ), if (n.objectives > 1) list(
     # setMBOControlMultiObj
@@ -94,7 +95,8 @@ mboParamSet <- function(n.objectives) {
     add_dep("multipoint.moimbo.sbx.eta", "multipoint.method", CondEqual$new("moimbo"))$
     add_dep("multipoint.moimbo.sbx.p", "multipoint.method", CondEqual$new("moimbo"))$
     add_dep("multipoint.moimbo.pm.eta", "multipoint.method", CondEqual$new("moimbo"))$
-    add_dep("multipoint.moimbo.pm.p", "multipoint.method", CondEqual$new("moimbo"))
+    add_dep("multipoint.moimbo.pm.p", "multipoint.method", CondEqual$new("moimbo"))$
+    add_dep("fixed.initial.design", "initial.design.size", CondEqual$new(0))
 
   if (n.objectives > 1) {
     ps$
