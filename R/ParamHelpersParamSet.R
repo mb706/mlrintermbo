@@ -17,7 +17,7 @@ ParamHelpersParamSet <- function(session, paramset) {
   })
   encall(session, data, expr = {
     ParamHelpers::makeParamSet(params = lapply(data, function(pcon) {
-      do.call(get(pcon[[1]], getNamespace("ParamHelpers"), mode = "function"), pcon[[2]])
+      do.call(get(pcon[[1]], getNamespace("ParamHelpers"), mode = "function"), pcon[[2]], quote = TRUE)
     }))
   })
 }
