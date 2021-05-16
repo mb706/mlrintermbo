@@ -31,10 +31,10 @@ conditionAsExpression <- function(condition, on) {
 
 conditionAsExpression.CondAnyOf <- function(condition, on) {
   # the single '&' is taken from paradox::CondAnyOf$test, which may be a bug there.
-  substitute(!is.na(on) & x %in% rhs, list(on = as.symbol(on), rhs = condition$rhs))
+  substitute(!is.na(on) & on %in% rhs, list(on = as.symbol(on), rhs = condition$rhs))
 }
 
 conditionAsExpression.CondEqual <- function(condition, on) {
   # the single '&' is taken from paradox::CondEqual$test, which may be a bug there.
-  substitute(!is.na(on) & x == rhs, list(on = as.symbol(on), rhs = condition$rhs))
+  substitute(!is.na(on) & on == rhs, list(on = as.symbol(on), rhs = condition$rhs))
 }
