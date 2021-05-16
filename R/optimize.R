@@ -27,7 +27,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
   init.size <- vals$initial.design.size %??% (length(par.set$pars) * 4)
   
   if (!is.null(vals$fixed.initial.design)) {
-    if (!identical(vals$initial.design.size, 0)) {
+    if (is.null(vals$initial.design.size) || vals$initial.design.size != 0) {
       stop("fixed.initial.design can only be given if initial.design.size is set to 0.")
     }
     init.size <- vals$initial.design.size <- nrow(vals$fixed.initial.design)
