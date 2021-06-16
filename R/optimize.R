@@ -54,9 +54,12 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
   colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
   design <- cbind(as.data.frame(instance$archive$data[, instance$archive$cols_x, with = FALSE], stringsAsFactors = FALSE), design)
   minimize <- unname(map_lgl(instance$objective$codomain$tags, function(x) "minimize" %in% x))  # important to unname, mlrMBO fails otherwise
-
-  proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {  # nocov start
-
+  mode <- vals$parallel.mode
+  cpus <- vals$parallel.cpus %??% 1
+  proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, mode, cpus, expr = {  # nocov start
+    if (!is.null(mode)) {
+      parallelMap::parallelStart(mode = mode, cpus = cpus)  # TODO: the problem here is that it doesn't stop parallelization when mode is set to NULL. otoh we want to ignore absence of parallelMap when it is NULL.
+    }
     control <- constructMBOControl(vals = vals, n.objectives = n.objectives, on.surrogate.error = on.surrogate.error)
 
     # that's right, we save the opt.state inside the background R session. It contains lots of stuff, none of which we need
