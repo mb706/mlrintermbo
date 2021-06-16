@@ -28,7 +28,9 @@ mboParamSet <- function(n.objectives) {
     ParamDbl$new("infill.opt.ea.sbx.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?
     ParamDbl$new("infill.opt.ea.pm.eta", lower = 0, default = 15),  # TODO not sure about bounds
     ParamDbl$new("infill.opt.ea.pm.p", lower = 0, upper = 1, default = 0.5),  # TODO not sure about bounds; is the default correct?
-    ParamInt$new("infill.opt.ea.lambda", lower = 1, default = 1)
+    ParamInt$new("infill.opt.ea.lambda", lower = 1, default = 1),
+    ParamFct$new("parallel.mode", levels = c("local", "multicore", "socket", "mpi", "BatchJobs"), default = "local"),
+    ParamInt$new("parallel.cpus", lower = 0)
   ), if (n.objectives > 1) list(
     ParamInt$new("infill.opt.nsga2.popsize", lower = 1, default = 100),
     ParamInt$new("infill.opt.nsga2.generations", lower = 1, default = 50),
