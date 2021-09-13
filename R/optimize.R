@@ -60,7 +60,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
     design <- cbind(as.data.frame(instance$archive$data[, instance$archive$cols_x, with = FALSE], stringsAsFactors = FALSE), design)
     
 
-    success <- tryCatch({
+    successful.init <- tryCatch({
       proposition <- NULL
       proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {  # nocov start
         persistent$opt.state <- NULL
