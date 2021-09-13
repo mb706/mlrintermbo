@@ -43,37 +43,56 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
   if (init.size > 0 && !instance$terminator$is_terminated(instance$archive)) {
     instance$eval_batch(generate_design_lhs(instance$search_space, init.size)$data)
   }
-  # so *in principle* we could stop here if the budget is exhausted. However, we
-  # do need to construct the `opt.state` so `assign_result` can do its thing.
-  # Therefore we still need to get to the `constructMBOControl` part.
-  #
-  # The following therefore tells the encall() further down whether to generate a proposal.
-  still.needs.proposition <- !instance$terminator$is_terminated(instance$archive)
 
-  design <- as.data.frame(instance$archive$data[, instance$objective$codomain$ids(), with = FALSE], stringsAsFactors = FALSE)
-  colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
-  design <- cbind(as.data.frame(instance$archive$data[, instance$archive$cols_x, with = FALSE], stringsAsFactors = FALSE), design)
+  successful.init <- FALSE
   minimize <- unname(map_lgl(instance$objective$codomain$tags, function(x) "minimize" %in% x))  # important to unname, mlrMBO fails otherwise
+  while (!successful.init) {
 
-  proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {  # nocov start
+    # so *in principle* we could stop here if the budget is exhausted. However, we
+    # do need to construct the `opt.state` so `assign_result` can do its thing.
+    # Therefore we still need to get to the `constructMBOControl` part.
+    #
+    # The following therefore tells the encall() further down whether to generate a proposal.
+    still.needs.proposition <- !instance$terminator$is_terminated(instance$archive)
 
-    control <- constructMBOControl(vals = vals, n.objectives = n.objectives, on.surrogate.error = on.surrogate.error)
+    design <- as.data.frame(instance$archive$data[, instance$objective$codomain$ids(), with = FALSE], stringsAsFactors = FALSE)
+    colnames(design) <- sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))
+    design <- cbind(as.data.frame(instance$archive$data[, instance$archive$cols_x, with = FALSE], stringsAsFactors = FALSE), design)
+    
 
-    # that's right, we save the opt.state inside the background R session. It contains lots of stuff, none of which we need
-    # in the main R session.
-    persistent$opt.state <- mlrMBO::initSMBO(control = control, par.set = par.set, minimize = minimize, design = design, learner = if (!is.null(learner)) makeCapsuledLearner(learner))
+    success <- tryCatch({
+      proposition <- NULL
+      proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {  # nocov start
 
-    proposition <- NULL
-    if (still.needs.proposition) {
-      proposition <- mlrMBO::proposePoints(persistent$opt.state)
-      proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(persistent$opt.state$opt.problem$fun), proposition$prop.points)
-    }
+        control <- constructMBOControl(vals = vals, n.objectives = n.objectives, on.surrogate.error = on.surrogate.error)
 
-    # also save the design inside the background R session, this saves us from having to send data over the process gap
-    persistent$design <- proposition$prop.points
+        # that's right, we save the opt.state inside the background R session. It contains lots of stuff, none of which we need
+        # in the main R session.
+        persistent$opt.state <- mlrMBO::initSMBO(control = control, par.set = par.set, minimize = minimize, design = design, learner = if (!is.null(learner)) makeCapsuledLearner(learner))
 
-    proposition
-  })  # nocov end
+        proposition <- NULL
+        if (still.needs.proposition) {
+          proposition <- mlrMBO::proposePoints(persistent$opt.state)
+          proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(persistent$opt.state$opt.problem$fun), proposition$prop.points)
+        }
+
+        # also save the design inside the background R session, this saves us from having to send data over the process gap
+        persistent$design <- proposition$prop.points
+
+        proposition
+      })  # nocov end
+      TRUE
+    }, error = function(e) {
+      if (self$on.surrgate.error == "stop") stop(e)
+      if (self$on.surrogate.error == "warn") warning(e)
+      if (still.needs.proposition) {
+        instance$eval_batch(generate_design_lhs(instance$search_space, 1)$data)  # evaluate a random point
+        FALSE
+      } else {
+        TRUE  # just end this; TODO probably need to fix assign_result to handle this case
+      }
+    })
+  }
   if (is.null(proposition)) {
     # budget exhausted after initial design
     return(invisible(NULL))
