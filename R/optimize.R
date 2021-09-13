@@ -83,7 +83,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
       })  # nocov end
       TRUE
     }, error = function(e) {
-      if (self$on.surrgate.error == "stop") stop(e)
+      if (self$on.surrogate.error == "stop") stop(e)
       if (self$on.surrogate.error == "warn") warning(e)
       if (still.needs.proposition) {
         instance$eval_batch(generate_design_lhs(instance$search_space, 1)$data)  # evaluate a random point
