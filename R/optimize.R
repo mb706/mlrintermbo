@@ -63,7 +63,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
     success <- tryCatch({
       proposition <- NULL
       proposition <- encall(self$r.session, vals, n.objectives, still.needs.proposition, par.set, minimize, design, learner, on.surrogate.error, expr = {  # nocov start
-
+        persistent$opt.state <- NULL
         control <- constructMBOControl(vals = vals, n.objectives = n.objectives, on.surrogate.error = on.surrogate.error)
 
         # that's right, we save the opt.state inside the background R session. It contains lots of stuff, none of which we need
@@ -131,10 +131,14 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 }
 
 assignResult <- function(instance) {
+  
   best <- encall(self$r.session, expr = {  # nocov start
-    resobj <- mlrMBO::finalizeSMBO(persistent$opt.state)
-    if (!is.null(resobj$pareto.inds)) resobj$pareto.inds else resobj$best.ind
+    if (!is.null(persistent$opt.state)) {
+      resobj <- mlrMBO::finalizeSMBO(persistent$opt.state)
+      if (!is.null(resobj$pareto.inds)) resobj$pareto.inds else resobj$best.ind
+    }
   })  # nocov end
+  if (is.null(best)) return(assign_result_default(instance))
   xdt <- instance$archive$data[best, instance$search_space$ids(), with = FALSE]
   ydt <- instance$archive$data[best, instance$objective$codomain$ids(), with = FALSE]
   if (inherits(instance, "OptimInstanceMultiCrit")) {
