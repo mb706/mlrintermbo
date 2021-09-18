@@ -78,7 +78,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
         # also save the design inside the background R session, this saves us from having to send data over the process gap
         persistent$design <- proposition$prop.points
-        persistent$prototype <- design[1, setdiff(colnames(design), sprintf(".PERFORMANCE.%s", seq_len(self$n.objectives))) , drop = FALSE]  # TODO fix this
+        persistent$prototype <- design[1, setdiff(colnames(design), sprintf(".PERFORMANCE.%s", seq_len(n.objectives))) , drop = FALSE]  # TODO fix this
         proposition
       })  # nocov end
       TRUE
