@@ -121,10 +121,12 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
     proposition <- encall(self$r.session, perfs, expr = {  # nocov start
       # using the saved design & opt.state here; save the new opt.state righ taway
-      persistent$opt.state <- mlrMBO::updateSMBO(opt.state = persistent$opt.state, x = persistent$design, y = as.list(as.data.frame(t(perfs), stringsAsFactors = FALSE)))
+      persistent$opt.state <- mlrMBO::updateSMBO(opt.state = persistent$opt.state,
+        x = rbind(persistent$prototype, persistent$design)[-1, , drop = FALSE],  # use prototype to get NAs the right type # TODO this is a hack...
+        y = as.list(as.data.frame(t(perfs), stringsAsFactors = FALSE)))
       proposition <- mlrMBO::proposePoints(persistent$opt.state)
       proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(persistent$opt.state$opt.problem$fun), proposition$prop.points)
-      persistent$design <- rbind(persistent$prototype, proposition$prop.points)[-1, , drop = FALSE]  # save the design again. use prototype to get NAs the right type # TODO this is a hack...
+      persistent$design <- proposition$prop.points  # save the design again.
       proposition
     })  # nocov end
   }
