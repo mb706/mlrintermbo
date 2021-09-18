@@ -78,7 +78,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
         # also save the design inside the background R session, this saves us from having to send data over the process gap
         persistent$design <- proposition$prop.points
-
+        persistent$prototype <- design[1, , drop = FALSE]
         proposition
       })  # nocov end
       TRUE
@@ -124,7 +124,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
       persistent$opt.state <- mlrMBO::updateSMBO(opt.state = persistent$opt.state, x = persistent$design, y = as.list(as.data.frame(t(perfs), stringsAsFactors = FALSE)))
       proposition <- mlrMBO::proposePoints(persistent$opt.state)
       proposition$prop.points <- repairParamDF(ParamHelpers::getParamSet(persistent$opt.state$opt.problem$fun), proposition$prop.points)
-      persistent$design <- proposition$prop.points  # save the design again
+      persistent$design <- rbind(proposition$prototype, proposition$prop.points)[-1, , drop = FALSE]  # save the design again. use prototype to get NAs the right type # TODO this is a hack...
       proposition
     })  # nocov end
   }
