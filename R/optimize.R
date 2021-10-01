@@ -25,12 +25,19 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
   learner <- vals$surrogate.learner
 
   init.size <- vals$initial.design.size %??% (length(par.set$pars) * 4)
+  
+  if (!is.null(vals$fixed.initial.design)) {
+    if (is.null(vals$initial.design.size) || vals$initial.design.size != 0) {
+      stop("fixed.initial.design can only be given if initial.design.size is set to 0.")
+    }
+    init.size <- vals$initial.design.size <- nrow(vals$fixed.initial.design)
+  }
 
   if (init.size != 0 && instance$archive$n_evals != 0) {
-    warning("Both 'initial.design.size' and number of instance's previously evaluated points are nonzero, so the initial may be larger than you expect.")
+    warning("Both the size of the initial design ('initial.design.size' or 'fixed.initial.design') and number of instance's previously evaluated points are nonzero, so the initial may be larger than you expect.")
   }
   if (init.size == 0 && instance$archive$n_evals == 0) {
-    stop("Initial design must not be 0. Either use an Optimization / Tuning Instance with present evaluations, or set 'initial.design.size' > 0.")
+    stop("Initial design must not be 0. Either use an Optimization / Tuning Instance with present evaluations, set 'initial.design.size' > 0, or use 'fixed.initial.design'.")
   }
 
   if (vals$propose.points %??% 1 > 1 &&
@@ -41,7 +48,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
 
   # don't eval_batch if the instance is already terminated. Will need to check this again *after* the initial design
   if (init.size > 0 && !instance$terminator$is_terminated(instance$archive)) {
-    instance$eval_batch(generate_design_lhs(instance$search_space, init.size)$data)
+    instance$eval_batch(vals$fixed.initial.design %??% generate_design_lhs(instance$search_space, init.size)$data)
   }
 
   successful.init <- FALSE
