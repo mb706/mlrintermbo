@@ -16,6 +16,15 @@ ParamHelpersParamSet <- function(session, paramset) {
     )
   })
   encall(session, data, expr = {
+    # need to patch out https://github.com/mlr-org/ParamHelpers/pull/233
+    ns <- asNamespace("ParamHelpers")
+    patching <- get("determineReqVectorized", ns)
+    if (isNamespace(environment(patching))) {
+      p.env <- new.env(parent = environment(patching))
+      p.env$deparse <- function(expr, width.cutoff = 500, ...) base::deparse(expr = expr, width.cutoff = width.cutoff, ...)
+      environment(patching) <- p.env
+      suppressWarnings({ unlockBinding("determineReqVectorized", ns) ; assign("determineReqVectorized", patching, ns) ; lockBinding("determineReqVectorized", ns) })
+    }
     ParamHelpers::makeParamSet(params = lapply(data, function(pcon) {
       do.call(get(pcon[[1]], getNamespace("ParamHelpers"), mode = "function"), pcon[[2]], quote = TRUE)
     }))
