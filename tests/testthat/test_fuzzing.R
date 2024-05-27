@@ -3,12 +3,7 @@ context("fuzzing")
 test_that("mbo with autotuner", {
   skip_on_cran()
   ll <- lrn("classif.rpart", predict_type = "prob")
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamDbl$new("minsplit", lower = 1, upper = 20), ParamDbl$new("minbucket", lower = 1, upper = 20)))
-  ps$trafo <- function(x, param_set) {
-    x$minsplit <- round(x$minsplit)
-    x$minbucket <- round(x$minbucket)
-    x
-  }
+  ps <- (ps(cp = p_dbl(lower = 0, upper = 1), minsplit = p_dbl(lower = 1, upper = 20, trafo = round), minbucket = p_dbl(lower = 1, upper = 20, trafo = round)))
 
   surr <- mlr3::LearnerRegrFeatureless$new()
   surr$predict_type = "se"
@@ -53,16 +48,11 @@ test_that("fuzzing intermbo", {
   psnew$params$initial.design.size$lower = 2
   psnew$params$initial.design.size$upper = 4
 
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamDbl$new("minsplit", lower = 1, upper = 20), ParamDbl$new("minbucket", lower = 1, upper = 20)))
-  ps$trafo <- function(x, param_set) {
-    x$minsplit <- round(x$minsplit)
-    x$minbucket <- round(x$minbucket)
-    x
-  }
+  ps <- (ps(cp = p_dbl(lower = 0, upper = 1), minsplit = p_dbl(lower = 1, upper = 20, trafo = round), minbucket = p_dbl(lower = 1, upper = 20, trafo = round)))
 
   objective <- ObjectiveRFun$new(function(xs) {
     list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2 + (assertInt(xs$minbucket) - 10) ^ 2)
-  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
+  }, ps, (ps(y = p_dbl(tags = "minimize"))))
 
 
   tuner <- OptimizerInterMBO$new(on.surrogate.error = "quiet")
