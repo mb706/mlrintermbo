@@ -48,8 +48,8 @@
 #' library("bbotk")
 #'
 #' # silly example function: minimize x^2 for -1 < x < 1
-#' domain <- ParamSet$new(list(x = p_dbl(lower = -1, upper = 1)))
-#' codomain <- ParamSet$new(list(y = p_dbl(tags = "minimize")))
+#' domain <- ps(x = p_dbl(lower = -1, upper = 1))
+#' codomain <- ps(y = p_dbl(tags = "minimize"))
 #' objective <- ObjectiveRFun$new(function(xs) list(y = xs$x^2), domain, codomain)
 #'
 #' # initialize instance
