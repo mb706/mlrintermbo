@@ -23,7 +23,7 @@ ParamHelpersParamSet <- function(session, paramset) {
       p.env <- new.env(parent = environment(patching))
       p.env$deparse <- function(expr, width.cutoff = 500, ...) base::deparse(expr = expr, width.cutoff = width.cutoff, ...)
       environment(patching) <- p.env
-      suppressWarnings({ unlockBinding("determineReqVectorized", ns) ; assign("determineReqVectorized", patching, ns) ; lockBinding("determineReqVectorized", ns) })
+      suppressWarnings({ get("unlockBinding", mode = "function")("determineReqVectorized", ns) ; assign("determineReqVectorized", patching, ns) ; lockBinding("determineReqVectorized", ns) })
     }
     ParamHelpers::makeParamSet(params = lapply(data, function(pcon) {
       do.call(get(pcon[[1]], getNamespace("ParamHelpers"), mode = "function"), pcon[[2]], quote = TRUE)
