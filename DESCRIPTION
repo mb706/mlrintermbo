@@ -39,7 +39,8 @@ Suggests:
     mlr3pipelines,
     mlrMBO,
     ranger,
-    rpart
+    rpart,
+    mco
 LazyData: yes
 Roxygen: list(markdown = TRUE, r6 = FALSE)
 ByteCompile: yes
