@@ -7,12 +7,12 @@ ParamHelpersParamSet <- function(session, paramset) {
     cond.expressions <- mapply(function(...) conditionAsExpression(...), conds$cond, conds$on)
     Reduce(function(x, y) substitute(x && y, list(x = x, y = y)), cond.expressions)
   }
-  data <- imap(paramset$params, function(param, pname) {
-    switch(param$class,
+  data <- imap(paramset$ids(), function(pname, pindex) {
+    switch(paramset$class[[pindex]],
       ParamLgl = list("makeLogicalParam", list(id = pname, requires = getRequires(pname))),
-      ParamInt = list("makeIntegerParam", list(id = pname, lower = param$lower, upper = param$upper, requires = getRequires(pname))),
-      ParamDbl = list("makeNumericParam", list(id = pname, lower = param$lower, upper = param$upper, requires = getRequires(pname))),
-      ParamFct = list("makeDiscreteParam", list(id = pname, values = param$levels, requires = getRequires(pname)))
+      ParamInt = list("makeIntegerParam", list(id = pname, lower = paramset$lower[[pindex]], upper = paramset$upper[[pindex]], requires = getRequires(pname))),
+      ParamDbl = list("makeNumericParam", list(id = pname, lower = paramset$lower[[pindex]], upper = paramset$upper[[pindex]], requires = getRequires(pname))),
+      ParamFct = list("makeDiscreteParam", list(id = pname, values = paramset$levels[[pname]], requires = getRequires(pname)))
     )
   })
   encall(session, data, expr = {
