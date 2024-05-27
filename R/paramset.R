@@ -14,11 +14,11 @@ mboParamSet <- function(n.objectives) {
     infill.crit.cb.lambda = p_dbl(special_vals = list(NULL), default = NULL, depends = quote(infill.crit == "CB"))
   ), list(
     infill.crit.aei.use.nugget = p_lgl(default = FALSE, depends = quote(infill.crit == "AEI")),
-    infill.crit.eqi.beta = p_dbl(lower = 0.5, upper = 1, default = 0.75, depends = quote(infill.crit == "EQI")),  # TODO not sure about bounds
+    infill.crit.eqi.beta = p_dbl(lower = 0.5, upper = 1, default = 0.75, depends = quote(infill.crit == "EQI"))  # TODO not sure about bounds
   ), if (n.objectives > 1) list(
-    infill.crit.sms.eps = p_dbl(lower = 0, special_vals = list(NULL), default = NULL, depends = quote(multiobj.dib.indicator == "sms")),
+    infill.crit.sms.eps = p_dbl(lower = 0, special_vals = list(NULL), default = NULL, depends = quote(multiobj.dib.indicator == "sms"))
   ) else list(
-    infill.crit.sms.eps = p_dbl(lower = 0, special_vals = list(NULL), default = NULL),
+    infill.crit.sms.eps = p_dbl(lower = 0, special_vals = list(NULL), default = NULL)
   ), list(
     infill.crit.cb.lambda.start = p_dbl(special_vals = list(NULL), default = NULL, depends = quote(infill.crit == "AdaCB")),
     infill.crit.cb.lambda.end = p_dbl(special_vals = list(NULL), default = NULL, depends = quote(infill.crit == "AdaCB")),
@@ -50,15 +50,15 @@ mboParamSet <- function(n.objectives) {
       # multipoint.method == cb --> do not define infill.opt.cb.lambda
       #                   == "moimbo" --> mboinfillcrit ignored
       #                   == cl --> infill.crit == cb
-    multipoint.cl.lie = p_uty(custom_check = checkFunction, default = min, depends = quote(infill.opt == "cl")),
-    multipoint.moimbo.objective = p_fct(levels = c("mean.dist", "ei.dist", "mean.se", "mean.se.dist"), default = "ei.dist", depends = quote(infill.opt == "moimbo")),
-    multipoint.moimbo.dist = p_fct(levels = c("nearest.neighbor", "nearest.better"), default = "nearest.better", depends = quote(infill.opt == "moimbo")),
-    multipoint.moimbo.selection = p_fct(levels = c("hypervolume", "crowdingdist", "first", "last"), default = "hypervolume", depends = quote(infill.opt == "moimbo")),
-    multipoint.moimbo.maxit = p_int(lower = 1, default = 100, depends = quote(infill.opt == "moimbo")),
-    multipoint.moimbo.sbx.eta = p_dbl(lower = 0, default = 15, depends = quote(infill.opt == "moimbo")),  # TODO not sure about bounds
-    multipoint.moimbo.sbx.p = p_dbl(lower = 0, upper = 1, default = 1, depends = quote(infill.opt == "moimbo")),  # TODO not sure about bounds; is the default correct?
-    multipoint.moimbo.pm.eta = p_dbl(lower = 0, default = 15, depends = quote(infill.opt == "moimbo")),  # TODO not sure about bound
-    multipoint.moimbo.pm.p = p_dbl(lower = 0, upper = 1, default = 1, depends = quote(infill.opt == "moimbo")),  # TODO not sure about bounds; is the default correct?moimbo
+    multipoint.cl.lie = p_uty(custom_check = checkFunction, default = min, depends = quote(multipoint.method == "cl")),
+    multipoint.moimbo.objective = p_fct(levels = c("mean.dist", "ei.dist", "mean.se", "mean.se.dist"), default = "ei.dist", depends = quote(multipoint.method == "moimbo")),
+    multipoint.moimbo.dist = p_fct(levels = c("nearest.neighbor", "nearest.better"), default = "nearest.better", depends = quote(multipoint.method == "moimbo")),
+    multipoint.moimbo.selection = p_fct(levels = c("hypervolume", "crowdingdist", "first", "last"), default = "hypervolume", depends = quote(multipoint.method == "moimbo")),
+    multipoint.moimbo.maxit = p_int(lower = 1, default = 100, depends = quote(multipoint.method == "moimbo")),
+    multipoint.moimbo.sbx.eta = p_dbl(lower = 0, default = 15, depends = quote(multipoint.method == "moimbo")),  # TODO not sure about bounds
+    multipoint.moimbo.sbx.p = p_dbl(lower = 0, upper = 1, default = 1, depends = quote(multipoint.method == "moimbo")),  # TODO not sure about bounds; is the default correct?
+    multipoint.moimbo.pm.eta = p_dbl(lower = 0, default = 15, depends = quote(multipoint.method == "moimbo")),  # TODO not sure about bound
+    multipoint.moimbo.pm.p = p_dbl(lower = 0, upper = 1, default = 1, depends = quote(multipoint.method == "moimbo")),  # TODO not sure about bounds; is the default correct?moimbo
     # others
     initial.design.size = p_int(lower = 0),
     surrogate.learner = p_uty(custom_check = detachEnv(function(x) checkClass(x, "Learner", null.ok = TRUE)))
