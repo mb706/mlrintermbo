@@ -1,5 +1,6 @@
 # mlrintermbo 0.5.1-9000
 
+- Work with new bbotk 0.9.0 and mlr3tuning 0.21.0
 
 # mlrintermbo 0.5.1
   - compatibility with paradox 1.0.0
