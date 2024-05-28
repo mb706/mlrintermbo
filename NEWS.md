@@ -1,3 +1,6 @@
+* mlrintermbo 0.5.1
+  - compatibility with paradox 1.0.0
+
 * mlrintermbo 0.5.0
   - license changed to LGPL-3
   - initial.design.size treatment fixed

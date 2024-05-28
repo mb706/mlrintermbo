@@ -3,11 +3,11 @@ context("custom_learner")
 test_that("makeMlr3Surrogate", {
   skip_on_cran()
 
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
+  ps <- (ps(cp = p_dbl(lower = 0, upper = 1), minsplit = p_int(lower = 1, upper = 20)))
 
   objective <- ObjectiveRFun$new(function(xs) {
     list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2)
-  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
+  }, ps, (ps(y = p_dbl(tags = "minimize"))))
 
 
   tuner <- OptimizerInterMBO$new()
@@ -47,11 +47,11 @@ test_that("custom surrogate", {
 
   cus <- as_learner(mlr3pipelines::`%>>%`(custompo, mlr3learners::LearnerRegrRanger$new()))
 
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
+  ps <- (ps(cp = p_dbl(lower = 0, upper = 1), minsplit = p_int(lower = 1, upper = 20)))
 
   objective <- ObjectiveRFun$new(function(xs) {
     list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2)
-  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
+  }, ps, (ps(y = p_dbl(tags = "minimize"))))
   tuner <- OptimizerInterMBO$new()
   tuner$param_set$values$surrogate.learner <- cus
   tuner$param_set$values$infill.crit <- "MeanResponse"

@@ -7,12 +7,12 @@ ParamHelpersParamSet <- function(session, paramset) {
     cond.expressions <- mapply(function(...) conditionAsExpression(...), conds$cond, conds$on)
     Reduce(function(x, y) substitute(x && y, list(x = x, y = y)), cond.expressions)
   }
-  data <- imap(paramset$params, function(param, pname) {
-    switch(param$class,
+  data <- imap(paramset$ids(), function(pname, pindex) {
+    switch(paramset$class[[pindex]],
       ParamLgl = list("makeLogicalParam", list(id = pname, requires = getRequires(pname))),
-      ParamInt = list("makeIntegerParam", list(id = pname, lower = param$lower, upper = param$upper, requires = getRequires(pname))),
-      ParamDbl = list("makeNumericParam", list(id = pname, lower = param$lower, upper = param$upper, requires = getRequires(pname))),
-      ParamFct = list("makeDiscreteParam", list(id = pname, values = param$levels, requires = getRequires(pname)))
+      ParamInt = list("makeIntegerParam", list(id = pname, lower = paramset$lower[[pindex]], upper = paramset$upper[[pindex]], requires = getRequires(pname))),
+      ParamDbl = list("makeNumericParam", list(id = pname, lower = paramset$lower[[pindex]], upper = paramset$upper[[pindex]], requires = getRequires(pname))),
+      ParamFct = list("makeDiscreteParam", list(id = pname, values = paramset$levels[[pname]], requires = getRequires(pname)))
     )
   })
   encall(session, data, expr = {
@@ -23,7 +23,7 @@ ParamHelpersParamSet <- function(session, paramset) {
       p.env <- new.env(parent = environment(patching))
       p.env$deparse <- function(expr, width.cutoff = 500, ...) base::deparse(expr = expr, width.cutoff = width.cutoff, ...)
       environment(patching) <- p.env
-      suppressWarnings({ unlockBinding("determineReqVectorized", ns) ; assign("determineReqVectorized", patching, ns) ; lockBinding("determineReqVectorized", ns) })
+      suppressWarnings({ get("unlockBinding", mode = "function")("determineReqVectorized", ns) ; assign("determineReqVectorized", patching, ns) ; lockBinding("determineReqVectorized", ns) })
     }
     ParamHelpers::makeParamSet(params = lapply(data, function(pcon) {
       do.call(get(pcon[[1]], getNamespace("ParamHelpers"), mode = "function"), pcon[[2]], quote = TRUE)

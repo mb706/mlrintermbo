@@ -14,6 +14,9 @@ mlrMBO tuning object.
 
 mlrMBO must not be loaded directly into R when using mlr3, for various reasons.
 TunerInterMBO and OptimizerInterMBO take care that this does not happen.
+}
+\section{Construction}{
+
 
 To optimize an objective (using the \code{bbotk} package), use the \code{OptimizerInterMBO} object,
 ideally obtained through the \code{\link[bbotk:opt]{bbotk::opt()}} function: \code{opt("intermbo")}.
@@ -21,25 +24,48 @@ ideally obtained through the \code{\link[bbotk:opt]{bbotk::opt()}} function: \co
 To tune a machine learning method represented by a \link[mlr3:Learner]{mlr3::Learner} object,
 use the \code{TunerInterMBO} obtained ideally through \code{\link[mlr3tuning:tnr]{mlr3tuning::tnr()}}: \code{tnr("intermbo")}.
 
+Both have following optional arguments:
+\itemize{
+\item \code{n.objectives} :: \code{integer(1)}\cr
+Number of objectives to optimize. Default is 1 for ordinary ("single objective") optimization,
+but can be breater than 1 for multi-objective optimization. See \code{\link[mlrMBO:setMBOControlMultiObj]{mlrMBO::setMBOControlMultiObj()}}
+for details on multi-objective optimization in \code{mlrMBO}.
+\item \code{on.surrogate.error} :: \code{character(1)}\cr
+What to do when fitting or predicting the surrogate model fails. One of \code{"stop"} (throw error),
+\code{"warn"}, and \code{"quiet"}(ignore and propose a random point).\cr
+The surrogate model may fail sometimes, for example when the size
+of the initial design is too small or when the objective function returns constant values. In practice
+this is usually safe to ignore for single iterations (i.e. \code{"warn"} or \code{"quiet"}), but be aware
+that MBO effectively degrades to random search when the surrogate model fails for all iterations.
+}
+}
+
+\section{Configuration Parameters}{
+
+
 The \code{\link[paradox:ParamSet]{ParamSet}} of the optimizer / tuner reflects the possible configuration
 options of mlrMBO. The control parameters map directly to the arguments of
 \code{\link[mlrMBO:makeMBOControl]{mlrMBO::makeMBOControl()}}, \code{\link[mlrMBO:setMBOControlInfill]{mlrMBO::setMBOControlInfill()}}, \code{\link[mlrMBO:setMBOControlMultiObj]{mlrMBO::setMBOControlMultiObj()}},
 \code{\link[mlrMBO:setMBOControlMultiPoint]{mlrMBO::setMBOControlMultiPoint()}}, and \code{\link[mlrMBO:setMBOControlTermination]{mlrMBO::setMBOControlTermination()}}.
 }
+
 \examples{
 library("paradox")
 library("bbotk")
 
 # silly example function: minimize x^2 for -1 < x < 1
-domain <- ParamSet$new(list(ParamDbl$new("x", lower = -1, upper = 1)))
-codomain <- ParamSet$new(list(ParamDbl$new("y", tags = "minimize")))
+domain <- ps(x = p_dbl(lower = -1, upper = 1))
+codomain <- ps(y = p_dbl(tags = "minimize"))
 objective <- ObjectiveRFun$new(function(xs) list(y = xs$x^2), domain, codomain)
 
 # initialize instance
 instance <- OptimInstanceSingleCrit$new(objective, domain, trm("evals", n_evals = 6))
 
 # use intermbo optimizer
-optser <- opt("intermbo")
+#
+# Also warn on surrogate model errors
+# (this is the default and can be omitted)
+optser <- opt("intermbo", on.surrogate.error = "warn")
 
 # optimizer has hyperparameters from mlrMBO
 optser$param_set$values$final.method <- "best.predicted"

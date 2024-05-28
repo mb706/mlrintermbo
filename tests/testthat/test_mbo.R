@@ -2,7 +2,7 @@ context("manual tests")
 
 test_that("mbo default", {
   skip_on_cran()
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
+  ps <- (ps(cp = p_dbl(lower = 0, upper = 1), minsplit = p_int(lower = 1, upper = 20)))
 
   # get archivenames
   ti <- TuningInstanceSingleCrit$new(task = tsk("pima"), learner = lrn("classif.rpart", predict_type = "prob"), resampling = rsmp("holdout"), measure = msr("classif.auc"), terminator = trm("evals", n_evals = 1), search_space = ps)
@@ -25,15 +25,15 @@ test_that("mbo default", {
 test_that("mbo different settings", {
 
   set.seed(2)
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
+  ps <- (ps(cp = p_dbl(lower = 0, upper = 1), minsplit = p_int(lower = 1, upper = 20)))
 
   objective <- ObjectiveRFun$new(function(xs) {
     list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2)
-  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"))))
+  }, ps, (ps(y = p_dbl(tags = "minimize"))))
 
   objective.mc <- ObjectiveRFun$new(function(xs) {
     list(y = (xs$cp - .5) ^ 2 + (assertInt(xs$minsplit) - 10) ^ 2, classif.tpr = - ((xs$cp - .2) ^ 2 + (assertInt(xs$minsplit) - 7) ^ 2))
-  }, ps, ParamSet$new(list(ParamDbl$new("y", tags = "minimize"), ParamDbl$new("classif.tpr", tags = "maximize"))))
+  }, ps, (ps(y = p_dbl(tags = "minimize"), classif.tpr = p_dbl(tags = "maximize"))))
 
   surr <- LearnerRegrFeatureless$new()
   surr$predict_type = "se"
@@ -92,8 +92,7 @@ test_that("mbo different settings", {
   expect_equal(ti$archive$data$batch_nr, rep(1:3, c(8, 2, 2)))
 
   # cmaes only works with numeric params, but we can append a trafo that rounds
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamDbl$new("minsplit", lower = 1, upper = 20)))
-  ps$trafo <- function(x, param_set) { x$minsplit <- round(x$minsplit) ; x }
+  ps <- (ps(cp = p_dbl(lower = 0, upper = 1), minsplit = p_dbl(lower = 1, upper = 20, trafo = round)))
   ti <- eval_mbo(list(propose.points = 2, infill.opt = "cmaes"))
   expect_names(names(ti$archive$data), permutation.of = c(archivenames, "crit.vals", "multipoint.cb.lambdas"))
   expect_data_table(ti$archive$data, nrows = 12)
@@ -101,7 +100,7 @@ test_that("mbo different settings", {
   expect_equal(ti$archive$data$batch_nr, rep(1:3, c(8, 2, 2)))
 
   skip_on_cran()   # skip from here, things take too much time.
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = 0, upper = 1), ParamInt$new("minsplit", lower = 1, upper = 20)))
+  ps <- (ps(cp = p_dbl(lower = 0, upper = 1), minsplit = p_int(lower = 1, upper = 20)))
   ti <- eval_mbo(list(propose.points = 2, multipoint.method = "cl", infill.crit = "EI", infill.opt.focussearch.points = 5, infill.opt.focussearch.maxit = 2))
   expect_names(names(ti$archive$data), permutation.of = c(archivenames, "crit.vals"))
   expect_data_table(ti$archive$data, nrows = 12)
@@ -203,8 +202,7 @@ test_that("mbo different settings", {
 
 test_that("trafo", {
   skip_on_cran()
-  ps <- ParamSet$new(list(ParamDbl$new("cp", lower = -1, upper = 0)))
-  ps$trafo <- function(x, param_set) { x$cp <- -x$cp ; x }
+  ps <- (ps(cp = p_dbl(lower = -1, upper = 0, trafo = function(x) -x)))
 
   # get archivenames
   set.seed(1)
