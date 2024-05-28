@@ -1,7 +1,7 @@
 # mlrintermbo: mlrMBO mlr3 Interface <img src="todo-files/mlrintermbo.png" width="300" align="right" />
 
 [![check](https://github.com/mb706/mlrintermbo/actions/workflows/check.yml/badge.svg)](https://github.com/mb706/mlrintermbo/actions/workflows/check.yml)
-[![Coverage](https://codecov.io/github/mb706/mlrintermbo/branch/master/graphs/badge.svg)](https://codecov.io/github/mb706/mlrintermbo)
+[![Coverage](https://codecov.io/github/mb706/mlrintermbo/branch/master/graphs/badge.svg)](https://app.codecov.io/github/mb706/mlrintermbo)
 [![CRAN Status Badge](https://www.r-pkg.org/badges/version/mlrintermbo)](https://CRAN.R-project.org/package=mlrintermbo)
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/mlrintermbo)](https://CRAN.R-project.org/package=mlrintermbo)
 
