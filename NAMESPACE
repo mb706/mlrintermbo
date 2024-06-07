@@ -2,8 +2,13 @@
 
 S3method(mlr::predictLearner,CapsuledMlr3Learner)
 S3method(mlr::trainLearner,CapsuledMlr3Learner)
+export(OptimInstanceMultiCrit)
+export(OptimInstanceSingleCrit)
+export(Optimizer)
 export(OptimizerInterMBO)
 export(TunerInterMBO)
+export(TuningInstanceMultiCrit)
+export(TuningInstanceSingleCrit)
 export(captureSpecials)
 export(makeMlr3Surrogate)
 import(checkmate)

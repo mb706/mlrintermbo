@@ -2,7 +2,7 @@
 #'
 #' @aliases mlr_optimizers_intermbo mlr_tuners_intermbo
 #' @usage NULL
-#' @format [R6::R6Class] object inheriting from [mlr3tuning::Tuner] or [bbotk::Optimizer].
+#' @format [R6::R6Class] object inheriting from `Tuner` (`mlr3tuning` package) or `Optimizer` (`bbotk` package).
 #'
 #' @description
 #' mlrMBO tuning object.
@@ -70,7 +70,7 @@
 #' instance$result
 #' @export
 OptimizerInterMBO <- R6Class("OptimizerInterMBO",
-  inherit = bbotk::Optimizer,
+  inherit = Optimizer,
   public = list(
     n.objectives = NULL,
     on.surrogate.error = NULL,
@@ -97,7 +97,7 @@ OptimizerInterMBO <- R6Class("OptimizerInterMBO",
 #' @rdname OptimizerInterMBO
 #' @export
 TunerInterMBO <- R6Class("TunerInterMBO",
-  inherit = mlr3tuning::TunerFromOptimizer,
+  inherit = TunerFromOptimizer,
   public = list(
     initialize = function(n.objectives = 1, on.surrogate.error = "stop") {
       super$initialize(OptimizerInterMBO$new(n.objectives, on.surrogate.error))

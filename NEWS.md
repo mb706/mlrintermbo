@@ -1,5 +1,5 @@
-# mlrintermbo 0.5.1-9000
-
+# mlrintermbo 0.5.1-1
+  - compatibility with upcoming bbotk release
 
 # mlrintermbo 0.5.1
   - compatibility with paradox 1.0.0

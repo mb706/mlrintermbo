@@ -39,9 +39,10 @@ test_that("fuzzing intermbo", {
     psnew$values[[pn]] = to_tune()
   }
 
+  isbounded = as.data.table(psnew)$is_bounded
   for (pari in which(psnew$is_number)) {
     psn = psnew$ids()[[pari]]
-    if (psnew$is_bounded[[pari]]) next
+    if (isbounded[[pari]]) next
     if (is.finite(psnew$lower[[pari]])) {
       if (is.numeric(psnew$default[[psn]]) && is.finite(psnew$default[[psn]]) && psnew$default[[psn]] > psnew$lower[[pari]]) {
         psnew$values[[psn]] = to_tune(psnew$lower[[pari]], (psnew$lower[[pari]] - psnew$default[[psn]]) + psnew$default[[psn]] * 2)
