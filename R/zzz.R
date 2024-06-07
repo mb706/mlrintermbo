@@ -63,6 +63,7 @@ TuningInstanceMultiCrit = R6::R6Class("TuningInstanceMultiCrit", inherit = Tunin
 
 
 .onLoad = function(libname, pkgname) {
+  # nocov start
   backports::import(pkgname)
   warnIfPHLoaded()
   utils::getFromNamespace("mlr_optimizers", ns = "bbotk")$add("intermbo", OptimizerInterMBO)
