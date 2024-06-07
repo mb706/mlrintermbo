@@ -19,10 +19,10 @@ TunerInterMBO and OptimizerInterMBO take care that this does not happen.
 
 
 To optimize an objective (using the \code{bbotk} package), use the \code{OptimizerInterMBO} object,
-ideally obtained through the \code{bbotk::opt()} function: \code{opt("intermbo")}.
+ideally obtained through the \code{\link[bbotk:opt]{bbotk::opt()}} function: \code{opt("intermbo")}.
 
 To tune a machine learning method represented by a \link[mlr3:Learner]{mlr3::Learner} object,
-use the \code{TunerInterMBO} obtained ideally through \code{mlr3tuning::tnr()}: \code{tnr("intermbo")}.
+use the \code{TunerInterMBO} obtained ideally through \code{\link[mlr3tuning:tnr]{mlr3tuning::tnr()}}: \code{tnr("intermbo")}.
 
 Both have following optional arguments:
 \itemize{
