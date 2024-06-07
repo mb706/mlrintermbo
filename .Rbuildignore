@@ -1,6 +1,7 @@
 ^LICENSE$
 ^tools$
 ^todo-files$
+^attic$
 ^man-roxygen$
 \.gitignore
 ^\.git$
