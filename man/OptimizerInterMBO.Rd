@@ -7,7 +7,7 @@
 \alias{TunerInterMBO}
 \title{Tuner and Optimizer using mlrMBO}
 \format{
-\link[R6:R6Class]{R6::R6Class} object inheriting from \link[mlr3tuning:Tuner]{mlr3tuning::Tuner} or \link[bbotk:Optimizer]{bbotk::Optimizer}.
+\link[R6:R6Class]{R6::R6Class} object inheriting from \code{Tuner} (\code{mlr3tuning} package) or \code{Optimizer} (\code{bbotk} package).
 }
 \description{
 mlrMBO tuning object.
