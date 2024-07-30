@@ -84,7 +84,7 @@ See https://github.com/mlr-org/mlrMBO/issues/474")
       TRUE
     }, error = function(e) {
       if (self$on.surrogate.error == "stop") stop(e)
-      if (self$on.surrogate.error == "warn") warning(e)
+      if (self$on.surrogate.error == "warn") warning(warningCondition(conditionMessage(e), call = conditionCall(e)))
       if (still.needs.proposition) {
         instance$eval_batch(generate_design_lhs(instance$search_space, 1)$data)  # evaluate a random point
         FALSE
