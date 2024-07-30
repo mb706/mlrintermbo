@@ -1,3 +1,6 @@
+# mlrintermbo 0.5.1-2
+  - minor bugfix: converting errors to warnings did not work when inside `try()`.
+
 # mlrintermbo 0.5.1-1
   - compatibility with upcoming bbotk release
 
