@@ -78,7 +78,14 @@ OptimizerInterMBO <- R6Class("OptimizerInterMBO",
     initialize = function(n.objectives = 1, on.surrogate.error = "warn") {
       self$n.objectives <- assertCount(n.objectives, positive = TRUE)
       self$on.surrogate.error <- assertChoice(on.surrogate.error, c("stop", "warn", "quiet"))
-      self$r.session <- initSession(callr::r_session$new(wait_timeout = 10000))
+      r.session.timeout <- assertNumber(getOption("mlrintermbo.r_session.timeout", 10000), lower = 0)
+      withCallingHandlers({
+        r.session <- callr::r_session$new(wait_timeout = r.session.timeout)
+      }, error = function(e) {
+        e$message = sprintf("%s\n\nIf this is a timeout problem, try setting 'mlrintermbo.r_session.timeout' (default 10000).")
+        stop(e)
+      })
+      self$r.session <- initSession(r.session)
       warnIfPHLoaded()
       super$initialize(
         param_set = mboParamSet(n.objectives),
