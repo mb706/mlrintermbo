@@ -82,7 +82,7 @@ OptimizerInterMBO <- R6Class("OptimizerInterMBO",
       withCallingHandlers({
         r.session <- callr::r_session$new(wait_timeout = r.session.timeout)
       }, error = function(e) {
-        e$message = sprintf("%s\n\nIf this is a timeout problem, try setting 'mlrintermbo.r_session.timeout' (default 10000).")
+        e$message = sprintf("%s\n\nIf this is a timeout problem, try setting 'mlrintermbo.r_session.timeout' (default 10000).", e$message)
         stop(e)
       })
       self$r.session <- initSession(r.session)
